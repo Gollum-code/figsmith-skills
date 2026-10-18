@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 本地配置与密钥 —— 绝不入库
+config.json
+apikey.txt
+.env
+.vision_telemetry.jsonl
+
+# 产物（图源是源，产物可再生；仅保留 blessed 验收样本）
+figure-output/
+renders/
+*.log
+
+# 内部计划文档（不外泄）
+*-plan.md
+PLAN.md
