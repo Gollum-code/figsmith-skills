@@ -1,0 +1,14 @@
+{
+  "schema": "figsmith.catalog/1.0",
+  "domain": "icon-logo",
+  "version": "1.0.0",
+  "description": "Icon and mark templates. Route: parameterized SVG.",
+  "route": "structure",
+  "chart_types": [
+    { "id": "icon_linear", "name": "Linear icon (24px grid)", "route": "structure", "layout_spec": "grid-24", "keywords": ["线性图标", "icon", "图标"] },
+    { "id": "icon_filled", "name": "Filled icon (48px grid)", "route": "structure", "layout_spec": "grid-48", "keywords": ["面性图标", "filled", "图标"] },
+    { "id": "lettermark", "name": "Lettermark", "route": "structure", "layout_spec": "free", "keywords": ["字母标", "monogram", "logo"] },
+    { "id": "pictorial_mark", "name": "Pictorial mark", "route": "structure", "layout_spec": "free", "keywords": ["图形标", "pictorial", "logo"] },
+    { "id": "badge", "name": "Badge / seal", "route": "structure", "layout_spec": "ring-text", "keywords": ["徽章", "badge", "印章"] }
+  ]
+}

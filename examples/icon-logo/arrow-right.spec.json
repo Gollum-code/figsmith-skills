@@ -1,0 +1,9 @@
+{
+  "name": "arrow-right",
+  "grid": 24,
+  "stroke": 2,
+  "strokes": [
+    { "d": "M5 12 H18" },
+    { "d": "M13 7 l5 5 -5 5" }
+  ]
+}

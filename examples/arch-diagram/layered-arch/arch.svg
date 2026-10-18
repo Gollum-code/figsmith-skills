@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200.00" height="1476.00" viewBox="0 0 1200.00 1476.00">
+<rect x="0" y="0" width="1200.00" height="1476.00" fill="#FFFFFF"/>
+<rect x="36.00" y="36.00" width="1128.00" height="252.00" fill="#F4F6F8" stroke="none"/>
+<rect x="36.00" y="468.00" width="1128.00" height="396.00" fill="#F4F6F8" stroke="none"/>
+<rect x="36.00" y="1044.00" width="1128.00" height="396.00" fill="#F4F6F8" stroke="none"/>
+<text x="72.00" y="92.24" font-size="23.81" font-weight="600" fill="#4B5158" text-anchor="start">Presentation tier</text>
+<text x="72.00" y="524.24" font-size="23.81" font-weight="600" fill="#4B5158" text-anchor="start">Application tier</text>
+<text x="72.00" y="1100.24" font-size="23.81" font-weight="600" fill="#4B5158" text-anchor="start">Data tier</text>
+<rect x="36.00" y="180.00" width="168.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
+<text x="120.00" y="237.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Web client</text>
+<rect x="228.00" y="180.00" width="168.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
+<text x="312.00" y="237.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Mobile client</text>
+<rect x="420.00" y="180.00" width="168.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
+<text x="504.00" y="237.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">API gateway</text>
+<rect x="612.00" y="180.00" width="168.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
+<text x="696.00" y="237.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Auth service</text>
+<rect x="228.00" y="612.00" width="168.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#0072B2" stroke-width="1.68"/>
+<text x="312.00" y="653.38" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Business</text>
+<text x="312.00" y="685.52" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">logic</text>
+<rect x="612.00" y="612.00" width="168.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
+<text x="696.00" y="669.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Async worker</text>
+<rect x="228.00" y="1188.00" width="168.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
+<text x="312.00" y="1245.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Cache</text>
+<rect x="420.00" y="1188.00" width="168.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
+<text x="504.00" y="1245.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Primary DB</text>
+<rect x="804.00" y="1188.00" width="168.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
+<text x="888.00" y="1229.38" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Message</text>
+<text x="888.00" y="1261.52" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">queue</text>
+<line x1="204.00" y1="234.00" x2="415.00" y2="234.00" stroke="#8E959D" stroke-width="1.20"/>
+<path d="M 420.00 234.00 l -5.00 -3.00 l 0 6.00 Z" fill="#8E959D"/><text x="312.00" y="226.00" font-size="8.00" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">HTTPS</text>
+<line x1="504.00" y1="288.00" x2="504.00" y2="607.00" stroke="#8E959D" stroke-width="1.20"/>
+<path d="M 504.00 612.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="512.00" y="450.00" font-size="8.00" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">RPC</text>
+<line x1="396.00" y1="666.00" x2="607.00" y2="666.00" stroke="#8E959D" stroke-width="1.20"/>
+<path d="M 612.00 666.00 l -5.00 -3.00 l 0 6.00 Z" fill="#8E959D"/><text x="504.00" y="658.00" font-size="8.00" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">dispatch</text>
+<line x1="696.00" y1="720.00" x2="696.00" y2="1183.00" stroke="#8E959D" stroke-width="1.20"/>
+<path d="M 696.00 1188.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="704.00" y="954.00" font-size="8.00" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">publish</text>
+<line x1="312.00" y1="720.00" x2="312.00" y2="1183.00" stroke="#8E959D" stroke-width="1.20"/>
+<path d="M 312.00 1188.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="320.00" y="954.00" font-size="8.00" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">SQL</text>
+<line x1="312.00" y1="720.00" x2="312.00" y2="1183.00" stroke="#8E959D" stroke-width="1.20"/>
+<path d="M 312.00 1188.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="320.00" y="954.00" font-size="8.00" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">read</text>
+</svg>

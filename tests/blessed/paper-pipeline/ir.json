@@ -1,0 +1,74 @@
+{
+  "schema": "figsmith.ir/1.0",
+  "meta": {
+    "domain": "paper-figure",
+    "chart_type": "pipeline",
+    "tokens": "academic",
+    "title": "Figure 1. Three-stage processing pipeline",
+    "width_unit": 100,
+    "height_unit": 40
+  },
+  "content": {
+    "labels": {
+      "s1": "Raw signal",
+      "s2": "Denoising",
+      "s3": "Feature extraction",
+      "s4": "Classifier",
+      "out": "Response",
+      "e1": "acquisition",
+      "e2": "filtering",
+      "e3": "selection",
+      "e4": "decision"
+    },
+    "legend": [],
+    "footnote": "Each stage is independent; stages 2-4 are retrained per subject."
+  },
+  "topology": {
+    "nodes": [
+      { "id": "s1", "kind": "box" },
+      { "id": "s2", "kind": "box" },
+      { "id": "s3", "kind": "box" },
+      { "id": "s4", "kind": "box" },
+      { "id": "out", "kind": "box" }
+    ],
+    "edges": [
+      { "from": "s1", "to": "s2", "label": "e1", "kind": "arrow" },
+      { "from": "s2", "to": "s3", "label": "e2", "kind": "arrow" },
+      { "from": "s3", "to": "s4", "label": "e3", "kind": "arrow" },
+      { "from": "s4", "to": "out", "label": "e4", "kind": "arrow" }
+    ]
+  },
+  "layout": {
+    "canvas": { "margin": 3, "px_per_unit": 12 },
+    "grid": {
+      "columns": 5,
+      "gap_x": 2.0,
+      "gap_y": 4.0,
+      "box_w": 16,
+      "box_h": 12
+    },
+    "nodes": {
+      "s1": { "col": 0, "row": 0 },
+      "s2": { "col": 1, "row": 0 },
+      "s3": { "col": 2, "row": 0 },
+      "s4": { "col": 3, "row": 0 },
+      "out": { "col": 4, "row": 0 }
+    }
+  },
+  "style": {
+    "fill": {
+      "s1": "colors.surface_band",
+      "s2": "colors.surface_band",
+      "s3": "colors.surface_band",
+      "s4": "colors.surface_band",
+      "out": "colors.surface_band"
+    },
+    "stroke": { "default": "colors.border", "width": "stroke.thin" },
+    "text": {
+      "default": "fonts.role.panel_label",
+      "size": "fonts.size_pt.panel_label",
+      "color": "colors.ink"
+    },
+    "emphasis": ["s3"]
+  }
+}

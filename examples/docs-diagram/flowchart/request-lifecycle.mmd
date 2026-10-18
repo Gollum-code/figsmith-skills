@@ -1,0 +1,15 @@
+flowchart TD
+    %% A request lifecycle, as it would appear in a design doc
+    client[Client] -->|HTTPS| gateway[API Gateway]
+    gateway --> auth{Auth OK?}
+    auth -->|yes| service[Order Service]
+    auth -->|no| reject[401 Response]
+    service --> db[(Primary DB)]
+    service --> cache[(Redis Cache)]
+    service -->|publish| queue[[Event Bus]]
+    queue --> worker[Async Worker]
+    worker --> db
+    reject --> client
+
+    style service fill:#f9f
+    classDef unused fill:#000

@@ -1,0 +1,57 @@
+{
+  "schema": "figsmith.ir/1.0",
+  "meta": {
+    "domain": "unknown",
+    "chart_type": "unknown",
+    "tokens": "academic",
+    "width_unit": 200.0,
+    "height_unit": 100.0
+  },
+  "content": {
+    "labels": {}
+  },
+  "topology": {
+    "nodes": [],
+    "edges": []
+  },
+  "layout": {
+    "canvas": {
+      "margin": 1.5,
+      "px_per_unit": 8.0
+    },
+    "grid": {
+      "columns": 5,
+      "gap_x": 3.0,
+      "gap_y": 3.0,
+      "box_w": 1.1,
+      "box_h": 1.5
+    },
+    "nodes": {}
+  },
+  "style": {
+    "fill": {
+      "default": "colors.surface_band"
+    },
+    "stroke": {
+      "default": "colors.border",
+      "width": "stroke.thin"
+    },
+    "text": {
+      "default": "fonts.role.panel_label",
+      "size": "fonts.size_pt.panel_label",
+      "color": "colors.ink"
+    },
+    "emphasis": []
+  },
+  "_probe": {
+    "rows_detected": 7,
+    "columns_detected": 5,
+    "margin_px": [
+      40,
+      26,
+      39,
+      12
+    ],
+    "tone_delta": 0.6471
+  }
+}

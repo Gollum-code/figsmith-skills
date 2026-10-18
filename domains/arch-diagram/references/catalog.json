@@ -1,0 +1,16 @@
+{
+  "schema": "figsmith.catalog/1.0",
+  "domain": "arch-diagram",
+  "version": "1.0.0",
+  "description": "Architecture diagram catalog.",
+  "route": "structure",
+  "routes": { "structure": { "backend": "backends/svg.py" } },
+  "chart_types": [
+    { "id": "layered", "name": "Layered architecture", "route": "structure", "layout_spec": "stacked-bands", "keywords": ["分层", "架构", "layer", "n-tier"] },
+    { "id": "pipeline", "name": "Data pipeline", "route": "structure", "layout_spec": "row-n-equal", "keywords": ["流水线", "pipeline", "数据流"] },
+    { "id": "state_machine", "name": "State machine", "route": "structure", "layout_spec": "graph", "keywords": ["状态机", "状态转换", "state"] },
+    { "id": "sequence", "name": "Sequence diagram", "route": "structure", "layout_spec": "lifelines", "keywords": ["时序", "调用", "sequence"] },
+    { "id": "deployment", "name": "Deployment topology", "route": "structure", "layout_spec": "zones", "keywords": ["部署", "拓扑", "deployment", "集群"] },
+    { "id": "component", "name": "Component graph", "route": "structure", "layout_spec": "graph", "keywords": ["组件", "依赖", "component"] }
+  ]
+}

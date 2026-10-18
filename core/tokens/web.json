@@ -1,0 +1,110 @@
+﻿{
+  "schema": "figsmith.tokens/1.0",
+  "name": "web",
+  "version": "1.0.0",
+  "description": "Web/social tokens. Sans-serif, generous leading, larger type, for screen reading.",
+  "fonts": {
+    "sans": {
+      "latin": "Inter",
+      "latin_fallback": "Segoe UI",
+      "cjk": "Microsoft YaHei",
+      "cjk_fallback": "PingFang SC"
+    },
+    "serif": {
+      "latin": "Georgia",
+      "latin_fallback": "DejaVu Serif",
+      "cjk": "SimSun",
+      "cjk_fallback": "Noto Serif CJK SC"
+    },
+    "mono": {
+      "latin": "Consolas",
+      "latin_fallback": "DejaVu Sans Mono"
+    },
+    "role": {
+      "figure_title": "sans",
+      "panel_label": "sans",
+      "axis_label": "sans",
+      "tick_label": "sans",
+      "annotation": "sans",
+      "legend": "sans",
+      "table_header": "sans",
+      "code": "mono"
+    },
+    "size_pt": {
+      "figure_title": 15,
+      "panel_label": 13,
+      "axis_label": 12,
+      "tick_label": 11,
+      "annotation": 11,
+      "legend": 11,
+      "table_header": 12,
+      "code": 11,
+      "min_readable": 10
+    },
+    "line_height_ratio": 1.5,
+    "tracking_em": -0.005
+  },
+  "colors": {
+    "ink": "#111827",
+    "ink_secondary": "#374151",
+    "ink_tertiary": "#6B7280",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F9FAFB",
+    "surface_band": "#F3F4F6",
+    "grid": "#E5E7EB",
+    "grid_strong": "#D1D5DB",
+    "axis": "#9CA3AF",
+    "border": "#D1D5DB",
+    "border_strong": "#9CA3AF",
+    "categorical": ["#2563EB", "#EA580C", "#059669", "#CA8A04", "#DB2777", "#0891B2", "#4B5563", "#7C3AED"],
+    "accent": ["#2563EB", "#EA580C", "#059669"],
+    "series_pair": ["#9CA3AF", "#2563EB"],
+    "sequential": "palette.colors.sequential.blue",
+    "diverging": "palette.colors.diverging.blue_red",
+    "status": {
+      "ok": "#059669",
+      "warn": "#CA8A04",
+      "fail": "#DC2626"
+    }
+  },
+  "stroke": {
+    "hairline": 1,
+    "thin": 1.5,
+    "medium": 2,
+    "bold": 3,
+    "arrow": 1.75,
+    "arrow_head": 6,
+    "grid": 0.75,
+    "axis": 1
+  },
+  "radius": {
+    "box": 8,
+    "chip": 6,
+    "badge": 999
+  },
+  "grid": {
+    "unit": 8,
+    "column_gap": 32,
+    "row_gap": 20,
+    "box_width": 160,
+    "box_height": 52,
+    "box_min_height": 40,
+    "text_padding": 10
+  },
+  "canvas": {
+    "margin": 48,
+    "margin_small": 32,
+    "max_width": 1440,
+    "width_unit": 100
+  },
+  "export": {
+    "target_dpi": 96,
+    "vector": ["svg"],
+    "raster_min_dpi": 144
+  },
+  "rules": [
+    "Minimum readable size on screen is 10pt; anything smaller belongs to print domains only.",
+    "Shadows are allowed on floating layers (cards, popovers) but never on flat elements.",
+    "Corner radius starts at 8px to match web product visual language."
+  ]
+}

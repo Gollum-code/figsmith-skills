@@ -1,0 +1,40 @@
+{
+  "schema": "figsmith.ir/1.0",
+  "meta": {
+    "domain": "paper-figure",
+    "chart_type": "bar_grouped",
+    "tokens": "academic",
+    "width_unit": 100,
+    "height_unit": 70
+  },
+  "content": {
+    "labels": { "s1": "实验组", "s2": "对照组" },
+    "axis": { "x": "条件", "y": "响应幅度 (a.u.)" },
+    "legend": ["实验组", "对照组"]
+  },
+  "topology": {
+    "nodes": [
+      { "id": "s1", "kind": "box" },
+      { "id": "s2", "kind": "box" }
+    ],
+    "edges": []
+  },
+  "layout": {
+    "canvas": { "w": 100, "h": 70, "margin": 4 },
+    "grid": { "columns": 2, "gap_x": 4.0, "box_w": 30, "box_h": 20 },
+    "nodes": { "s1": { "col": 0, "row": 0 }, "s2": { "col": 1, "row": 0 } }
+  },
+  "style": {
+    "fill": { "s1": "colors.surface_band", "s2": "#FF0000" },
+    "stroke": { "default": "colors.nonexistent", "width": "stroke.thin" },
+    "text": { "default": "fonts.role.panel_label", "size": "fonts.size_pt.panel_label", "color": "colors.ink" },
+    "emphasis": ["s1", "s2", "ghost"]
+  },
+  "data": {
+    "source": "data/trials.csv",
+    "series": [
+      { "name": "实验组", "x": [1, 2, 3], "y": [0.1, 0.4, 0.5], "yerr": [0.02, 0.03, 0.03] }
+    ],
+    "units": { "x": "条件", "y": "a.u." }
+  }
+}

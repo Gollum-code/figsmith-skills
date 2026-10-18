@@ -1,0 +1,156 @@
+{
+  "schema": "figsmith.ir/1.0",
+  "meta": {
+    "domain": "docs-diagram",
+    "chart_type": "flowchart",
+    "tokens": "academic",
+    "width_unit": 100,
+    "height_unit": 40
+  },
+  "content": {
+    "labels": {
+      "client": "Client",
+      "gateway": "API Gateway",
+      "auth": "Auth OK?",
+      "service": "Order Service",
+      "reject": "401 Response",
+      "db": "Primary DB",
+      "cache": "Redis Cache",
+      "queue": "Event Bus",
+      "worker": "Async Worker",
+      "el_0": "HTTPS",
+      "el_2": "yes",
+      "el_3": "no",
+      "el_6": "publish"
+    },
+    "legend": [],
+    "footnote": ""
+  },
+  "topology": {
+    "nodes": [
+      {
+        "id": "client",
+        "kind": "box"
+      },
+      {
+        "id": "gateway",
+        "kind": "box"
+      },
+      {
+        "id": "auth",
+        "kind": "box"
+      },
+      {
+        "id": "service",
+        "kind": "box"
+      },
+      {
+        "id": "reject",
+        "kind": "box"
+      },
+      {
+        "id": "db",
+        "kind": "box"
+      },
+      {
+        "id": "cache",
+        "kind": "box"
+      },
+      {
+        "id": "queue",
+        "kind": "box"
+      },
+      {
+        "id": "worker",
+        "kind": "box"
+      }
+    ],
+    "edges": [
+      {
+        "from": "client",
+        "to": "gateway",
+        "kind": "arrow",
+        "label": "el_0"
+      },
+      {
+        "from": "gateway",
+        "to": "auth",
+        "kind": "arrow"
+      },
+      {
+        "from": "auth",
+        "to": "service",
+        "kind": "arrow",
+        "label": "el_2"
+      },
+      {
+        "from": "auth",
+        "to": "reject",
+        "kind": "arrow",
+        "label": "el_3"
+      },
+      {
+        "from": "service",
+        "to": "db",
+        "kind": "arrow"
+      },
+      {
+        "from": "service",
+        "to": "cache",
+        "kind": "arrow"
+      },
+      {
+        "from": "service",
+        "to": "queue",
+        "kind": "arrow",
+        "label": "el_6"
+      },
+      {
+        "from": "queue",
+        "to": "worker",
+        "kind": "arrow"
+      },
+      {
+        "from": "worker",
+        "to": "db",
+        "kind": "arrow"
+      },
+      {
+        "from": "reject",
+        "to": "client",
+        "kind": "arrow"
+      }
+    ]
+  },
+  "layout": {
+    "direction": "top-down",
+    "canvas": {
+      "margin": 3,
+      "px_per_unit": 12,
+      "width_inches": 7.0
+    },
+    "grid": {
+      "columns": 4,
+      "gap_x": 2.0,
+      "gap_y": 3.0,
+      "box_w": 20,
+      "box_h": 9
+    },
+    "nodes": {}
+  },
+  "style": {
+    "fill": {
+      "default": "colors.surface_band"
+    },
+    "stroke": {
+      "default": "colors.border",
+      "width": "stroke.thin"
+    },
+    "text": {
+      "default": "fonts.role.panel_label",
+      "size": "fonts.size_pt.panel_label",
+      "color": "colors.ink"
+    },
+    "emphasis": []
+  }
+}

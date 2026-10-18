@@ -1,0 +1,84 @@
+{
+  "schema": "figsmith.tokens/1.0",
+  "name": "palette",
+  "version": "1.0.0",
+  "description": "颜色板字典。所有色板默认色盲安全（Okabe-Ito / CVD-safe），语义常量查表，禁止硬编码 hex。",
+  "colors": {
+    "cvd_safe": {
+      "_comment": "Okabe-Ito 八色。任意两色对红绿/蓝黄/全色盲均可分辨，是分类数据的默认选项。",
+      "black": "#000000",
+      "orange": "#E69F00",
+      "sky_blue": "#56B4E9",
+      "bluish_green": "#009E73",
+      "yellow": "#F0E442",
+      "blue": "#0072B2",
+      "vermillion": "#D55E00",
+      "reddish_purple": "#CC79A7"
+    },
+    "cvd_safe_order": [
+      "#0072B2",
+      "#D55E00",
+      "#009E73",
+      "#E69F00",
+      "#CC79A7",
+      "#56B4E9",
+      "#000000",
+      "#F0E442"
+    ],
+    "cvd_safe_pair_safe": {
+      "_comment": "成对出现（正/负、实验/对照、before/after）时的安全组合。",
+      "positive": "#0072B2",
+      "negative": "#D55E00",
+      "experiment": "#009E73",
+      "control": "#8C8C8C",
+      "before": "#8C8C8C",
+      "after": "#0072B2"
+    },
+    "neutral": {
+      "gray_0": "#FFFFFF",
+      "gray_50": "#FAFAFA",
+      "gray_100": "#F2F2F2",
+      "gray_200": "#E3E5E8",
+      "gray_300": "#D0D4D9",
+      "gray_400": "#B4BAC1",
+      "gray_500": "#8E959D",
+      "gray_600": "#6B7280",
+      "gray_700": "#4B5158",
+      "gray_800": "#2E3238",
+      "gray_900": "#1A1D21"
+    },
+    "sequential": {
+      "_comment": "连续型数据。浅→深，相邻档灰度差 ≥ 40（配合 core/verify/check_contrast.py 验收）。",
+      "blue": ["#EAF2F8", "#C6DBEF", "#9ECAE1", "#6BAED6", "#4292C6", "#2171B5", "#084594"],
+      "warm": ["#FFF5EB", "#FEE6CE", "#FDD0A2", "#FDAE6B", "#FD8D3C", "#E6550D", "#A63603"],
+      "teal": ["#F1F8F6", "#D3EDE5", "#A8DCCB", "#74C7B0", "#41AB8F", "#238B45", "#00441B"],
+      "gray": ["#FFFFFF", "#F2F2F2", "#D9D9D9", "#BFBFBF", "#999999", "#737373", "#4D4D4D"]
+    },
+    "diverging": {
+      "_comment": "有正负中点（相关性、log2FC、偏差）。中点必须是中性浅色，两端才能拉得开。",
+      "blue_red": ["#2166AC", "#4393C3", "#92C5DE", "#F7F7F7", "#F4A582", "#D6604D", "#B2182B"],
+      "teal_orange": ["#1B7837", "#5AAE61", "#A6DBA0", "#F5F5F5", "#FEE0B6", "#F1A340", "#E08214"]
+    },
+    "semantic": {
+      "ok": "#1E7B45",
+      "warn": "#B4690E",
+      "fail": "#B3261E",
+      "info": "#0072B2",
+      "skip": "#6B7280"
+    },
+    "signal": {
+      "_comment": "状态/强调专用。不是数据色，只用于「这一处要你注意」。",
+      "highlight": "#D55E00",
+      "muted_highlight": "#FBE3D4",
+      "focus_ring": "#0072B2",
+      "forbidden": "#B3261E"
+    }
+  },
+  "usage_rules": [
+    "颜色一律通过语义常量引用（如 categorical[0]、accent[1]、neutral.gray_500），不写 hex。",
+    "一张图里强调色 ≤ 3 种。多出来的降级成 neutral。",
+    "正文与网格线的灰度差必须 ≥ 40，在渲染像素上量，不靠 hex 数学。",
+    "分类数据优先 cvd_safe_order；连续数据用 sequential；有中点用 diverging。",
+    "打印场景考虑灰度可分辨性：先转灰度，再看还能不能分出层级。"
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "size": [
+    1600,
+    800
+  ],
+  "content_bbox": [
+    40,
+    26,
+    1560,
+    787
+  ],
+  "margin_px": [
+    40,
+    26,
+    39,
+    12
+  ],
+  "margin_symmetric": false,
+  "band_count": 7,
+  "bands": [
+    {
+      "y": [
+        26,
+        50
+      ],
+      "height": 25,
+      "ink_density": 0.0691
+    },
+    {
+      "y": [
+        60,
+        164
+      ],
+      "height": 105,
+      "ink_density": 0.0383
+    },
+    {
+      "y": [
+        174,
+        278
+      ],
+      "height": 105,
+      "ink_density": 0.0411
+    },
+    {
+      "y": [
+        288,
+        392
+      ],
+      "height": 105,
+      "ink_density": 0.042
+    },
+    {
+      "y": [
+        402,
+        506
+      ],
+      "height": 105,
+      "ink_density": 0.0425
+    },
+    {
+      "y": [
+        516,
+        620
+      ],
+      "height": 105,
+      "ink_density": 0.0425
+    },
+    {
+      "y": [
+        773,
+        784
+      ],
+      "height": 12,
+      "ink_density": 0.0394
+    }
+  ],
+  "band_start_gaps": [
+    34,
+    114,
+    114,
+    114,
+    114,
+    257
+  ],
+  "column_count": 5,
+  "columns": [
+    {
+      "x": [
+        542,
+        640
+      ],
+      "width": 99
+    },
+    {
+      "x": [
+        650,
+        707
+      ],
+      "width": 58
+    },
+    {
+      "x": [
+        717,
+        725
+      ],
+      "width": 9
+    },
+    {
+      "x": [
+        733,
+        763
+      ],
+      "width": 31
+    },
+    {
+      "x": [
+        775,
+        854
+      ],
+      "width": 80
+    }
+  ],
+  "tone": {
+    "background": 1.0,
+    "foreground": 0.3529,
+    "delta": 0.6471
+  },
+  "ink_coverage": 0.0298,
+  "file": "docs/probe/t2_dense_1600.png"
+}

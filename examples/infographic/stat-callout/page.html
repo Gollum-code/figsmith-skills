@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>infographic stat callout</title>
+<style>
+  :root {
+    --ink: #111827;
+    --ink-2: #374151;
+    --ink-3: #6B7280;
+    --surface: #FFFFFF;
+    --band-a: #EFF6FF;
+    --band-b: #F0FDF4;
+    --band-c: #FFF7ED;
+    --accent: #2563EB;
+    --ok: #059669;
+    --warn: #EA580C;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #F9FAFB; }
+  .page {
+    width: 1200px; height: 760px;
+    background: var(--surface);
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    padding: 56px 64px;
+  }
+  .head { font-size: 34px; font-weight: 800; margin: 0 0 8px; }
+  .sub { font-size: 17px; color: var(--ink-3); margin: 0 0 44px; }
+  .grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+  }
+  .card {
+    border: 1px solid #E5E7EB; border-radius: 14px;
+    padding: 32px 28px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .card.a { background: var(--band-a); }
+  .card.b { background: var(--band-b); }
+  .card.c { background: var(--band-c); }
+  .num { font-size: 64px; font-weight: 800; line-height: 1; }
+  .card.a .num { color: var(--accent); }
+  .card.b .num { color: var(--ok); }
+  .card.c .num { color: var(--warn); }
+  .label { font-size: 19px; font-weight: 700; }
+  .desc { font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .foot { margin-top: 40px; font-size: 13px; color: var(--ink-3); }
+</style>
+<style>@page { size: 900.00pt 570.00pt; margin: 0; }html, body { margin: 0; padding: 0; width: 1200px; }</style><style>@page { size: 900.00pt 570.00pt; margin: 0; }html, body { margin: 0; padding: 0; width: 1200px; }</style></head>
+<body>
+  <div class="page">
+    <div class="head">FigSmith 落地成效</div>
+    <div class="sub">同一套中间表示（IR）驱动七条后端，把风格一致性变成可验证的事实。</div>
+    <div class="grid">
+      <div class="card a">
+        <div class="num">7</div>
+        <div class="label">输出后端</div>
+        <div class="desc">SVG / PDF / PNG / PPTX / DrawIO / MPL / HTML，一份 IR 全出。</div>
+      </div>
+      <div class="card b">
+        <div class="num">98</div>
+        <div class="label">可路由图型</div>
+        <div class="desc">从分组柱状到桑基，意图一句话定位到模板。</div>
+      </div>
+      <div class="card c">
+        <div class="num">3</div>
+        <div class="label">验收脚本</div>
+        <div class="desc">对比度、拼接、溢出，图文一致性自动判分。</div>
+      </div>
+    </div>
+    <div class="foot">数据来源：FigSmith 项目内部度量，2026-Q1。</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "schema": "figsmith.catalog/1.0",
+  "domain": "infographic",
+  "version": "1.0.0",
+  "description": "Infographic chart types. Mixed routes.",
+  "chart_types": [
+    { "id": "timeline_v", "name": "Vertical timeline", "route": "structure", "layout_spec": "axis-alt", "keywords": ["时间轴", "纵向", "timeline"] },
+    { "id": "timeline_h", "name": "Horizontal timeline", "route": "structure", "layout_spec": "axis-alt", "keywords": ["时间轴", "横向", "timeline"] },
+    { "id": "comparison_ab", "name": "A/B comparison", "route": "structure", "layout_spec": "split-mid", "keywords": ["对比", "AB", "comparison"] },
+    { "id": "process_steps", "name": "Step strip", "route": "structure", "layout_spec": "row-n-equal", "keywords": ["步骤", "流程", "steps"] },
+    { "id": "stat_callout", "name": "Big-number callout", "route": "html", "layout_spec": "grid-numbers", "keywords": ["大数字", "统计", "callout", "kpi"] },
+    { "id": "story_scroll", "name": "Scrolling story", "route": "html", "layout_spec": "sections", "keywords": ["长图", "故事", "scroll", "叙事"] },
+    { "id": "icon_grid", "name": "Icon grid", "route": "html", "layout_spec": "grid", "keywords": ["图标网格", "icon grid", "特性"] },
+    { "id": "map_annotated", "name": "Annotated map", "route": "structure", "layout_spec": "free", "keywords": ["地图", "标注", "map"] }
+  ]
+}

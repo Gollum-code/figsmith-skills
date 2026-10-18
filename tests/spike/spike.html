@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>FigSmith HTML/CSS to SVG spike</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif; background: #ffffff; color: #1A1D21; }
+  .page { width: 1200px; padding: 48px; }
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .sub { font-size: 15px; color: #6B7280; margin-bottom: 32px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+  .card { background: #F4F6F8; border: 1px solid #8E959D; border-radius: 8px; padding: 20px; }
+  .card h2 { font-size: 17px; font-weight: 600; margin-bottom: 10px; }
+  .card p { font-size: 15px; line-height: 1.6; color: #4B5158; }
+  .accent { color: #0072B2; font-weight: 600; }
+  .band { margin-top: 32px; background: #F4F6F8; border-radius: 8px; padding: 24px 28px; }
+  .band-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #6B7280; text-transform: uppercase; margin-bottom: 12px; }
+  .rows { display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; align-items: center; gap: 16px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #0072B2; flex: none; }
+  .row span { font-size: 15px; color: #374151; }
+  .gradient { margin-top: 32px; height: 56px; border-radius: 6px; background: linear-gradient(90deg, #0072B2 0%, #009E73 100%); }
+  .shadow { margin-top: 32px; background: #FFFFFF; border: 1px solid #D8DCE1; border-radius: 8px; padding: 24px; box-shadow: 0 6px 18px rgba(26, 29, 33, 0.10); }
+  .footer { margin-top: 28px; font-size: 13px; color: #8E959D; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>HTML/CSS 排版能力探针</h1>
+  <div class="sub">grid 对齐 · CJK 流式排版 · 渐变 · 阴影 · 字体回退</div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>网格对齐</h2>
+      <p>三列等宽，间距 24px。列宽由容器自动均分，验证 CSS grid 的均分精度。</p>
+    </div>
+    <div class="card">
+      <h2>文字流式排版</h2>
+      <p>这一段中文足够长，用来测试自动换行、行高 1.6 的节奏，以及中英混排时的基线稳定性。</p>
+    </div>
+    <div class="card">
+      <h2>混排与强调</h2>
+      <p>Mixed 中英 English text on one line, with an <span class="accent">accent span</span> inline.</p>
+    </div>
+  </div>
+
+  <div class="band">
+    <div class="band-label">骑缝标题牌 / band</div>
+    <div class="rows">
+      <div class="row"><div class="dot"></div><span>条目一：结构化数据行</span></div>
+      <div class="row"><div class="dot"></div><span>条目二：结构化数据行</span></div>
+      <div class="row"><div class="dot"></div><span>条目三：结构化数据行</span></div>
+    </div>
+  </div>
+
+  <div class="gradient"></div>
+
+  <div class="shadow">
+    <h2>阴影卡片</h2>
+    <p>SVG 没有原生 box-shadow。这一块是转换时最容易丢失或失真的部分，用来确认导出后的视觉差异。</p>
+  </div>
+
+  <div class="footer">底部脚注：字号 13px，颜色 #8E959D，验证灰度差是否达标。</div>
+</div>
+</body>
+</html>

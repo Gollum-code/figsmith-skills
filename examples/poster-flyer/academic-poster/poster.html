@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>academic poster 3col</title>
+<style>
+  :root {
+    --ink: #1A1A1A;
+    --ink-2: #404040;
+    --ink-3: #6B7280;
+    --surface: #FFFFFF;
+    --band: #F3F4F6;
+    --accent: #2563EB;
+    --accent-2: #EA580C;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #E5E7EB; }
+  .page {
+    width: 2384px; height: 3370px;
+    background: var(--surface);
+    font-family: "Georgia", "SimSun", serif;
+    color: var(--ink);
+    padding: 110px 130px;
+    display: flex; flex-direction: column;
+  }
+  .title-block { text-align: center; margin-bottom: 40px; }
+  .title {
+    font-size: 76px; font-weight: 800; line-height: 1.12; margin: 0 0 28px;
+  }
+  .authors { font-size: 30px; color: var(--ink-2); margin: 0 0 8px; }
+  .affil { font-size: 22px; color: var(--ink-3); margin: 0; }
+  .rule {
+    height: 8px; width: 100%; margin: 32px 0 56px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  }
+  .columns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 72px; flex: 1; }
+  .col h2 {
+    font-size: 40px; color: var(--accent); margin: 0 0 24px;
+    border-bottom: 4px solid var(--band); padding-bottom: 12px;
+  }
+  .col h3 { font-size: 30px; margin: 36px 0 12px; }
+  .col p { font-size: 23px; line-height: 1.55; color: var(--ink-2); margin: 0 0 18px; }
+  .col .num { font-size: 28px; font-weight: 700; color: var(--ink); }
+  .figure-placeholder {
+    background: var(--band); border: 2px dashed #9CA3AF; border-radius: 10px;
+    height: 420px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: var(--ink-3); margin: 12px 0 24px;
+  }
+  .foot { font-size: 20px; color: var(--ink-3); margin-top: 40px; text-align: center; }
+</style>
+<style>@page { size: 1788.00pt 2527.50pt; margin: 0; }html, body { margin: 0; padding: 0; width: 2384px; }</style><style>@page { size: 1788.00pt 2527.50pt; margin: 0; }html, body { margin: 0; padding: 0; width: 2384px; }</style><style>@page { size: 1788.00pt 2527.50pt; margin: 0; }html, body { margin: 0; padding: 0; width: 2384px; }</style><style>@page { size: 1788.00pt 2527.50pt; margin: 0; }html, body { margin: 0; padding: 0; width: 2384px; }</style></head>
+<body>
+  <div class="page">
+    <div class="title-block">
+      <h1 class="title">统一风格的科学配图体系：<br>从中间表示到多后端交付</h1>
+      <p class="authors">YG¹　Little Code Sauce²</p>
+      <p class="affil">¹ FigSmith Lab　² Code Forge</p>
+    </div>
+    <div class="rule"></div>
+    <div class="columns">
+      <div class="col">
+        <h2>方法</h2>
+        <h3>中间表示 IR</h3>
+        <p>所有图型先编译成一份与渲染器无关的 IR，风格集中在 token 层管理，后端只负责落地。</p>
+        <div class="figure-placeholder">方法流程图（SVG 占位）</div>
+        <h3>验收闭环</h3>
+        <p>对比度、拼接、溢出三查自动判分，图文一致性可重复验证。</p>
+      </div>
+      <div class="col">
+        <h2>结果</h2>
+        <h3>覆盖图型</h3>
+        <p>统计类、结构类、文档类合计 <span class="num">98</span> 种图型可一键路由。</p>
+        <div class="figure-placeholder">分组柱状图（MPL 占位）</div>
+        <h3>后端产出</h3>
+        <p>同一 IR 并行产出 <span class="num">7</span> 种格式，矢量优先。</p>
+      </div>
+      <div class="col">
+        <h2>结论</h2>
+        <h3>风格即契约</h3>
+        <p>风格不再是每个图的临时选择，而是可审计、可回放的系统属性。</p>
+        <div class="figure-placeholder">架构图（DrawIO 占位）</div>
+        <h3>下一步</h3>
+        <p>扩展动画域与实时协作，让静态体系向动态场景延伸。</p>
+      </div>
+    </div>
+    <div class="foot">对应作者邮箱：yg@figsmith.dev　|　海报模板：poster-flyer / academic_poster_3col</div>
+  </div>
+</body>
+</html>

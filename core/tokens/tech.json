@@ -1,0 +1,111 @@
+{
+  "schema": "figsmith.tokens/1.0",
+  "name": "tech",
+  "version": "1.0.0",
+  "description": "科技/深色令牌。深底浅字，高对比强调色，面向技术分享、产品发布、终端截图。",
+  "fonts": {
+    "sans": {
+      "latin": "Inter",
+      "latin_fallback": "Segoe UI",
+      "cjk": "Microsoft YaHei",
+      "cjk_fallback": "PingFang SC"
+    },
+    "serif": {
+      "latin": "Georgia",
+      "latin_fallback": "DejaVu Serif",
+      "cjk": "SimSun",
+      "cjk_fallback": "Noto Serif CJK SC"
+    },
+    "mono": {
+      "latin": "JetBrains Mono",
+      "latin_fallback": "Consolas",
+      "cjk": "Microsoft YaHei"
+    },
+    "role": {
+      "figure_title": "sans",
+      "panel_label": "sans",
+      "axis_label": "sans",
+      "tick_label": "sans",
+      "annotation": "sans",
+      "legend": "sans",
+      "table_header": "sans",
+      "code": "mono"
+    },
+    "size_pt": {
+      "figure_title": 14,
+      "panel_label": 12,
+      "axis_label": 11,
+      "tick_label": 10,
+      "annotation": 10,
+      "legend": 10,
+      "table_header": 11,
+      "code": 10,
+      "min_readable": 9
+    },
+    "line_height_ratio": 1.45,
+    "tracking_em": 0.0
+  },
+  "colors": {
+    "ink": "#E6EDF3",
+    "ink_secondary": "#B1BAC4",
+    "ink_tertiary": "#8B949E",
+    "surface": "#0D1117",
+    "surface_alt": "#161B22",
+    "surface_band": "#1C2128",
+    "grid": "#21262D",
+    "grid_strong": "#30363D",
+    "axis": "#484F58",
+    "border": "#30363D",
+    "border_strong": "#8B949E",
+    "categorical": ["#58A6FF", "#F0883E", "#3FB950", "#D29922", "#BC8CFF", "#39C5CF", "#F85149", "#A5D6FF"],
+    "accent": ["#58A6FF", "#3FB950", "#F0883E"],
+    "series_pair": ["#8B949E", "#58A6FF"],
+    "sequential": ["#0D1117", "#10233A", "#123B63", "#15548C", "#1F6FB5", "#4A96DA", "#7FBDF0"],
+    "diverging": ["#1F6FB5", "#4A96DA", "#9BC9EE", "#161B22", "#F0883E", "#D2691E", "#8B3A0F"],
+    "status": {
+      "ok": "#3FB950",
+      "warn": "#D29922",
+      "fail": "#F85149"
+    }
+  },
+  "stroke": {
+    "hairline": 0.8,
+    "thin": 1.2,
+    "medium": 1.7,
+    "bold": 2.2,
+    "arrow": 1.4,
+    "arrow_head": 5,
+    "grid": 0.5,
+    "axis": 0.8
+  },
+  "radius": {
+    "box": 6,
+    "chip": 4,
+    "badge": 999
+  },
+  "grid": {
+    "unit": 8,
+    "column_gap": 24,
+    "row_gap": 16,
+    "box_width": 150,
+    "box_height": 48,
+    "box_min_height": 36,
+    "text_padding": 8
+  },
+  "canvas": {
+    "margin": 48,
+    "margin_small": 32,
+    "max_width": 1440,
+    "width_unit": 100
+  },
+  "export": {
+    "target_dpi": 96,
+    "vector": ["svg"],
+    "raster_min_dpi": 144
+  },
+  "rules": [
+    "深底上不用纯黑 #000000，最深处到 surface 为止。",
+    "深底上正文与网格灰度差必须 ≥ 40 —— 深色主题更容易翻车，check_contrast.py 必跑。",
+    "发光/荧光色只在强调，不做大面积填充。"
+  ]
+}

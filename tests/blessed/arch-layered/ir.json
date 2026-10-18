@@ -1,0 +1,99 @@
+{
+  "schema": "figsmith.ir/1.0",
+  "meta": {
+    "domain": "arch-diagram",
+    "chart_type": "layered",
+    "tokens": "academic",
+    "title": "Figure 1. Three-tier service architecture",
+    "width_unit": 100,
+    "height_unit": 70
+  },
+  "content": {
+    "labels": {
+      "band_pres": "Presentation tier",
+      "band_app": "Application tier",
+      "band_data": "Data tier",
+      "web": "Web client",
+      "mobile": "Mobile client",
+      "gw": "API gateway",
+      "auth": "Auth service",
+      "biz": "Business logic",
+      "worker": "Async worker",
+      "cache": "Cache",
+      "db": "Primary DB",
+      "queue": "Message queue",
+      "e_gw": "HTTPS",
+      "e_biz": "RPC",
+      "e_worker": "dispatch",
+      "e_db": "SQL",
+      "e_cache": "read",
+      "e_queue": "publish"
+    },
+    "legend": [],
+    "footnote": "Solid arrows are synchronous calls; the async path goes through the queue."
+  },
+  "topology": {
+    "nodes": [
+      { "id": "band_pres", "kind": "band" },
+      { "id": "band_app", "kind": "band" },
+      { "id": "band_data", "kind": "band" },
+      { "id": "web", "kind": "box" },
+      { "id": "mobile", "kind": "box" },
+      { "id": "gw", "kind": "box" },
+      { "id": "auth", "kind": "box" },
+      { "id": "biz", "kind": "box" },
+      { "id": "worker", "kind": "box" },
+      { "id": "cache", "kind": "box" },
+      { "id": "db", "kind": "box" },
+      { "id": "queue", "kind": "box" }
+    ],
+    "edges": [
+      { "from": "web", "to": "gw", "label": "e_gw", "kind": "arrow" },
+      { "from": "gw", "to": "biz", "label": "e_biz", "kind": "arrow" },
+      { "from": "biz", "to": "worker", "label": "e_worker", "kind": "arrow" },
+      { "from": "worker", "to": "queue", "label": "e_queue", "kind": "arrow" },
+      { "from": "biz", "to": "db", "label": "e_db", "kind": "arrow" },
+      { "from": "biz", "to": "cache", "label": "e_cache", "kind": "arrow" }
+    ]
+  },
+  "layout": {
+    "canvas": { "margin": 3, "px_per_unit": 12, "width_inches": 7.0 },
+    "grid": {
+      "columns": 6,
+      "gap_x": 2.0,
+      "gap_y": 3.0,
+      "box_w": 14,
+      "box_h": 9
+    },
+    "nodes": {
+      "band_pres": { "col": 0, "row": 0, "col_span": 6, "row_span": 2 },
+      "band_app":  { "col": 0, "row": 3, "col_span": 6, "row_span": 3 },
+      "band_data": { "col": 0, "row": 7, "col_span": 6, "row_span": 3 },
+
+      "web":     { "col": 0, "row": 1 },
+      "mobile":  { "col": 1, "row": 1 },
+      "gw":      { "col": 2, "row": 1 },
+      "auth":    { "col": 3, "row": 1 },
+      "biz":     { "col": 1, "row": 4 },
+      "worker":  { "col": 3, "row": 4 },
+      "cache":   { "col": 1, "row": 8 },
+      "db":      { "col": 2, "row": 8 },
+      "queue":   { "col": 4, "row": 8 }
+    }
+  },
+  "style": {
+    "fill": {
+      "default": "colors.surface_band",
+      "band_pres": "colors.surface_band",
+      "band_app": "colors.surface_band",
+      "band_data": "colors.surface_band"
+    },
+    "stroke": { "default": "colors.border", "width": "stroke.thin" },
+    "text": {
+      "default": "fonts.role.panel_label",
+      "size": "fonts.size_pt.panel_label",
+      "color": "colors.ink"
+    },
+    "emphasis": ["biz"]
+  }
+}

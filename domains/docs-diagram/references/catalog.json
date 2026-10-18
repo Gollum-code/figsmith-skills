@@ -1,0 +1,29 @@
+{
+  "schema": "figsmith.catalog/1.0",
+  "domain": "docs-diagram",
+  "version": "1.0.0",
+  "description": "Documentation diagram catalog. Mermaid / drawio are parsed into FigSmith IR, then re-rendered in the system style. Route: structure (backends/svg.py).",
+  "route": "structure",
+  "routes": { "structure": { "backend": "backends/svg.py" } },
+  "source_formats": ["mermaid", "drawio", "image"],
+  "chart_types": [
+    { "id": "flowchart", "name": "Flowchart", "route": "structure", "layout_spec": "graph", "source": "mermaid:flowchart", "keywords": ["流程图", "流程", "flowchart", "流程框"] },
+    { "id": "sequence", "name": "Sequence diagram", "route": "structure", "layout_spec": "lifelines", "source": "mermaid:sequenceDiagram", "keywords": ["时序", "调用", "sequence", "交互"] },
+    { "id": "state", "name": "State diagram", "route": "structure", "layout_spec": "graph", "source": "mermaid:stateDiagram-v2", "keywords": ["状态图", "状态机", "state", "迁移"] },
+    { "id": "class", "name": "Class diagram", "route": "structure", "layout_spec": "graph", "source": "mermaid:classDiagram", "keywords": ["类图", "class", "uml", "继承"] },
+    { "id": "er", "name": "Entity-relationship", "route": "structure", "layout_spec": "graph", "source": "mermaid:erDiagram", "keywords": ["ER图", "实体", "关系", "er", "数据库"] },
+    { "id": "gantt", "name": "Gantt", "route": "structure", "layout_spec": "bars-deps", "source": "mermaid:gantt", "keywords": ["甘特", "排期", "gantt", "进度"] },
+    { "id": "journey", "name": "User journey", "route": "structure", "layout_spec": "lanes", "source": "mermaid:journey", "keywords": ["用户旅程", "journey", "体验", "环节"] },
+    { "id": "pie", "name": "Pie (diagram)", "route": "statistical", "layout_spec": "polar", "source": "mermaid:pie", "keywords": ["饼图", "占比", "pie", "比例"] },
+    { "id": "requirement", "name": "Requirement diagram", "route": "structure", "layout_spec": "graph", "source": "mermaid:requirementDiagram", "keywords": ["需求图", "requirement", "追踪"] },
+    { "id": "gitgraph", "name": "Git graph", "route": "structure", "layout_spec": "lanes", "source": "mermaid:gitGraph", "keywords": ["git图", "分支", "gitgraph", "commit"] },
+    { "id": "mindmap", "name": "Mindmap", "route": "structure", "layout_spec": "radial", "source": "mermaid:mindmap", "keywords": ["思维导图", "mindmap", "发散"] },
+    { "id": "timeline", "name": "Timeline (mermaid)", "route": "structure", "layout_spec": "axis-alt", "source": "mermaid:timeline", "keywords": ["时间线", "timeline", "大事记"] },
+    { "id": "quadrant", "name": "Quadrant chart", "route": "statistical", "layout_spec": "axes-regions", "source": "mermaid:quadrantChart", "keywords": ["象限", "quadrant", "矩阵", "定位"] },
+    { "id": "subsystem", "name": "Subsystem context", "route": "structure", "layout_spec": "graph", "source": "drawio", "keywords": ["子系统", "上下文", "context", "边界"] },
+    { "id": "container_diagram", "name": "Container diagram", "route": "structure", "layout_spec": "graph", "source": "drawio", "keywords": ["容器图", "container", "C4"] },
+    { "id": "network_topology", "name": "Network topology", "route": "structure", "layout_spec": "graph", "source": "drawio", "keywords": ["网络拓扑", "network", "拓扑", "节点"] },
+    { "id": "swimlane", "name": "Swimlane (drawio)", "route": "structure", "layout_spec": "lanes", "source": "drawio", "keywords": ["泳道", "swimlane", "协作", "职责"] },
+    { "id": "sankey_diagram", "name": "Sankey (diagram)", "route": "statistical", "layout_spec": "flows", "source": "drawio", "keywords": ["桑基", "sankey", "流向"] }
+  ]
+}

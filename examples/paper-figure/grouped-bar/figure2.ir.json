@@ -1,0 +1,133 @@
+{
+  "schema": "figsmith.ir/1.0",
+  "meta": {
+    "domain": "paper-figure",
+    "chart_type": "bar_grouped",
+    "tokens": "academic",
+    "title": "Figure 2. Dose-response comparison",
+    "width_unit": 100,
+    "height_unit": 62
+  },
+  "content": {
+    "labels": {},
+    "axis": {
+      "x": "Condition",
+      "y": "Response (a.u.)"
+    },
+    "legend": [
+      "Experiment",
+      "Control"
+    ],
+    "footnote": "Mean ± SD, n = 32 per group."
+  },
+  "topology": {
+    "nodes": [],
+    "edges": []
+  },
+  "layout": {
+    "canvas": {
+      "margin": 4,
+      "figsize_inches": [
+        7.0,
+        4.4
+      ]
+    },
+    "grid": {
+      "columns": 2,
+      "gap_x": 4.0,
+      "gap_y": 4.0,
+      "box_w": 30,
+      "box_h": 20
+    },
+    "nodes": {}
+  },
+  "style": {
+    "fill": {},
+    "stroke": {
+      "default": "colors.border",
+      "width": "stroke.thin"
+    },
+    "text": {
+      "default": "fonts.role.axis_label",
+      "size": "fonts.size_pt.axis_label",
+      "color": "colors.ink"
+    },
+    "emphasis": []
+  },
+  "data": {
+    "source": "examples\\paper-figure\\grouped-bar\\data\\dose_response.csv",
+    "categories": [
+      "baseline",
+      "low_dose",
+      "mid_dose",
+      "high_dose",
+      "recovery"
+    ],
+    "series": [
+      {
+        "name": "Experiment",
+        "x": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "y": [
+          0.121,
+          0.284,
+          0.447,
+          0.512,
+          0.302
+        ],
+        "yerr": [
+          0.031,
+          0.042,
+          0.051,
+          0.048,
+          0.039
+        ],
+        "error_kind": "SD",
+        "kind": "bar_grouped",
+        "width": 0.36
+      },
+      {
+        "name": "Control",
+        "x": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "y": [
+          0.118,
+          0.131,
+          0.139,
+          0.142,
+          0.135
+        ],
+        "yerr": [
+          0.029,
+          0.034,
+          0.036,
+          0.033,
+          0.031
+        ],
+        "error_kind": "SD",
+        "kind": "bar_grouped",
+        "width": 0.36
+      }
+    ],
+    "units": {
+      "x": "condition",
+      "y": "a.u."
+    },
+    "statistics": {
+      "test": "two-sided Welch t-test, experiment vs control within condition",
+      "alpha": 0.05,
+      "n": 32,
+      "correction": "Benjamini-Hochberg across 5 conditions"
+    }
+  }
+}

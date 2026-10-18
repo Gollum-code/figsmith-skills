@@ -1,0 +1,90 @@
+{
+  "schema": "figsmith.ir/1.0",
+  "meta": {
+    "domain": "arch-diagram",
+    "chart_type": "layered",
+    "tokens": "academic",
+    "title": "系统分层架构",
+    "width_unit": 100,
+    "height_unit": 80
+  },
+  "content": {
+    "labels": {
+      "n1": "输入层",
+      "n2": "处理层",
+      "n3": "输出层"
+    },
+    "legend": [],
+    "footnote": "示例 IR，供校验器测试"
+  },
+  "topology": {
+    "nodes": [
+      {
+        "id": "n1",
+        "kind": "box"
+      },
+      {
+        "id": "n2",
+        "kind": "box"
+      },
+      {
+        "id": "n3",
+        "kind": "box"
+      }
+    ],
+    "edges": [
+      {
+        "from": "n1",
+        "to": "n2",
+        "kind": "arrow"
+      },
+      {
+        "from": "n2",
+        "to": "n3",
+        "kind": "arrow"
+      }
+    ]
+  },
+  "layout": {
+    "canvas": {
+      "w": 100,
+      "h": 80,
+      "margin": 4
+    },
+    "grid": {
+      "columns": 3,
+      "gap_y": 4.0,
+      "box_h": 12,
+      "gap_x": 4.0
+    },
+    "nodes": {
+      "n1": {
+        "col": 0,
+        "row": 0
+      },
+      "n2": {
+        "col": 1,
+        "row": 0
+      },
+      "n3": {
+        "col": 2,
+        "row": 0
+      }
+    }
+  },
+  "style": {
+    "fill": {
+      "default": "colors.surface_band"
+    },
+    "stroke": {
+      "default": "colors.border",
+      "width": "stroke.thin"
+    },
+    "text": {
+      "default": "fonts.role.panel_label",
+      "size": "fonts.size_pt.panel_label",
+      "color": "colors.ink"
+    },
+    "emphasis": []
+  }
+}

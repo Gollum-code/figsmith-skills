@@ -1,0 +1,122 @@
+﻿{
+  "schema": "figsmith.tokens/1.0",
+  "name": "academic",
+  "version": "1.0.0",
+  "description": "Academic/paper default tokens. Serif body, hairlines, restrained color, for journal print.",
+  "fonts": {
+    "serif": {
+      "latin": "Times New Roman",
+      "latin_fallback": "DejaVu Serif",
+      "cjk": "SimSun",
+      "cjk_fallback": "Noto Serif CJK SC",
+      "math": "Times New Roman",
+      "math_italic": true
+    },
+    "sans": {
+      "latin": "Arial",
+      "latin_fallback": "DejaVu Sans",
+      "cjk": "SimHei",
+      "cjk_fallback": "Noto Sans CJK SC"
+    },
+    "mono": {
+      "latin": "Consolas",
+      "latin_fallback": "DejaVu Sans Mono"
+    },
+    "role": {
+      "figure_title": "sans",
+      "panel_label": "sans",
+      "axis_label": "serif",
+      "tick_label": "serif",
+      "annotation": "serif",
+      "legend": "serif",
+      "table_header": "sans",
+      "code": "mono"
+    },
+    "size_pt": {
+      "figure_title": 11,
+      "panel_label": 10,
+      "axis_label": 9,
+      "tick_label": 8,
+      "annotation": 8,
+      "legend": 8,
+      "table_header": 9,
+      "code": 8,
+      "min_readable": 7.5
+    },
+    "size_px_at_600dpi": {
+      "_comment": "px = pt * 600/72 at print resolution. Renderers use this, never hand-computed.",
+      "figure_title": 92,
+      "panel_label": 83,
+      "axis_label": 75,
+      "tick_label": 67,
+      "annotation": 67,
+      "legend": 67
+    },
+    "line_height_ratio": 1.35,
+    "tracking_em": 0.0
+  },
+  "colors": {
+    "ink": "#1A1D21",
+    "ink_secondary": "#4B5158",
+    "ink_tertiary": "#6B7280",
+    "surface": "#FFFFFF",
+    "surface_alt": "#FAFAFA",
+    "surface_band": "#F4F6F8",
+    "grid": "#D8DCE1",
+    "grid_strong": "#B4BAC1",
+    "axis": "#4B5158",
+    "border": "#8E959D",
+    "border_strong": "#4B5158",
+    "categorical": ["#0072B2", "#D55E00", "#009E73", "#E69F00", "#CC79A7", "#56B4E9", "#4B5158", "#F0E442"],
+    "accent": ["#0072B2", "#D55E00", "#009E73"],
+    "series_pair": ["#8E959D", "#0072B2"],
+    "sequential": "palette.colors.sequential.blue",
+    "diverging": "palette.colors.diverging.blue_red",
+    "status": {
+      "ok": "#1E7B45",
+      "warn": "#B4690E",
+      "fail": "#B3261E"
+    }
+  },
+  "stroke": {
+    "hairline": 0.8,
+    "thin": 1.2,
+    "medium": 1.7,
+    "bold": 2.2,
+    "arrow": 1.4,
+    "arrow_head": 5.0,
+    "grid": 0.5,
+    "axis": 0.8
+  },
+  "radius": {
+    "box": 3,
+    "chip": 2,
+    "badge": 4
+  },
+  "grid": {
+    "unit": 8,
+    "column_gap": 24,
+    "row_gap": 16,
+    "box_width": 120,
+    "box_height": 44,
+    "box_min_height": 32,
+    "text_padding": 6
+  },
+  "canvas": {
+    "margin": 40,
+    "margin_small": 24,
+    "max_width": 1740,
+    "width_unit": 100
+  },
+  "export": {
+    "target_dpi": 600,
+    "vector": ["svg", "pdf"],
+    "raster_min_dpi": 300
+  },
+  "rules": [
+    "fill never goes in CSS (text{fill} will poison it) - set per element or inherit from a wrapping <g fill>.",
+    "0.8-1.7px is the safe stroke band; past 2.2 it looks crude.",
+    "Arrows use gray not black: stroke = colors.border, never colors.ink.",
+    "Before print, self-check in grayscale: hierarchy must still separate."
+  ]
+}

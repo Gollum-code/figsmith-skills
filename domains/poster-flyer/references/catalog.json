@@ -1,0 +1,22 @@
+{
+  "schema": "figsmith.catalog/1.0",
+  "domain": "poster-flyer",
+  "version": "1.0.0",
+  "description": "Poster and flyer templates. Route: HTML/CSS -> PDF.",
+  "route": "html",
+  "page_sizes": {
+    "poster_a0": [3370, 4768],
+    "poster_a1": [2384, 3370],
+    "a4_flyer": [794, 1123],
+    "ig_portrait": [1080, 1350],
+    "ig_square": [1080, 1080],
+    "x_header": [1500, 500]
+  },
+  "chart_types": [
+    { "id": "academic_poster_3col", "name": "Academic poster (3 column)", "route": "html", "size": "poster_a1", "keywords": ["学术海报", "poster", "三栏", "conference"] },
+    { "id": "event_flyer", "name": "Event flyer", "route": "html", "size": "a4_flyer", "keywords": ["传单", "活动", "flyer", "宣传"] },
+    { "id": "social_banner", "name": "Social media banner", "route": "html", "size": "ig_portrait", "keywords": ["banner", "社媒", "社交", "instagram"] },
+    { "id": "product_card", "name": "Product card", "route": "html", "size": "ig_square", "keywords": ["产品卡", "product", "卡片"] },
+    { "id": "recruitment_poster", "name": "Recruitment poster", "route": "html", "size": "a4_flyer", "keywords": ["招聘", "recruit", "招募"] }
+  ]
+}

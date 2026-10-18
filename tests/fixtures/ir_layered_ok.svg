@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800.00" height="160.00" viewBox="0 0 800.00 160.00">
+<rect x="0" y="0" width="800.00" height="160.00" fill="#FFFFFF"/>
+<rect x="32.00" y="32.00" width="224.00" height="96.00" rx="24.00" ry="24.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
+<text x="144.00" y="85.85" font-size="40.32" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="4.84">输入层</text>
+<rect x="288.00" y="32.00" width="224.00" height="96.00" rx="24.00" ry="24.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
+<text x="400.00" y="85.85" font-size="40.32" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="4.84">处理层</text>
+<rect x="544.00" y="32.00" width="224.00" height="96.00" rx="24.00" ry="24.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
+<text x="656.00" y="85.85" font-size="40.32" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="4.84">输出层</text>
+<line x1="256.00" y1="80.00" x2="283.00" y2="80.00" stroke="#8E959D" stroke-width="1.20"/>
+<path d="M 288.00 80.00 l -5.00 -3.00 l 0 6.00 Z" fill="#8E959D"/>
+<line x1="512.00" y1="80.00" x2="539.00" y2="80.00" stroke="#8E959D" stroke-width="1.20"/>
+<path d="M 544.00 80.00 l -5.00 -3.00 l 0 6.00 Z" fill="#8E959D"/>
+</svg>
