@@ -45,10 +45,11 @@ FigSmith 是一个**纯文件技能树**。没有编译，没有注册表，没�
 
 ## 3. 环境依赖
 
-必需：
+必要：
 
 - Python 3.10+
-- numpy、matplotlib、Pillow
+- 依赖见 `requirements.txt`（已锁版本）：`pip install -r requirements.txt`
+  —— numpy、matplotlib、Pillow、reportlab、python-pptx、fontTools、lxml、scipy
 
 按需：
 

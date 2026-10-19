@@ -26,7 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from backends.png import find_browser  # noqa: E402
+from backends.png import find_browser, sandbox_flags  # noqa: E402
 
 
 def _inject_page_css(html: str, width_px: int, height_px: int) -> str:
@@ -64,7 +64,7 @@ def html_to_pdf(html: str, out_pdf: str | Path, width_px: int = 1200,
         page = Path(tmp) / "page.html"
         page.write_text(_inject_page_css(html, width_px, height_px), encoding="utf-8")
         proc = subprocess.run(
-            [browser, "--headless=new", "--disable-gpu", "--no-sandbox",
+            [browser, "--headless=new", "--disable-gpu", *sandbox_flags(),
              "--no-pdf-header-footer", "--run-all-compositor-stages-before-draw",
              "--virtual-time-budget=3000",
              f"--print-to-pdf={out}", page.resolve().as_uri()],
@@ -106,7 +106,7 @@ def pdf_to_png_proxy(pdf_path: str | Path, out_png: str | Path, width_px: int = 
         cmd = [
             browser, "--headless=new", "--disable-gpu", "--hide-scrollbars",
             "--force-device-scale-factor=1", f"--window-size={width_px},{view_h}",
-            "--no-sandbox", f"--screenshot={shot}", src_html.resolve().as_uri(),
+            *sandbox_flags(), f"--screenshot={shot}", src_html.resolve().as_uri(),
         ]
         subprocess.run(cmd, capture_output=True, timeout=120, check=False)
         if not shot.exists():

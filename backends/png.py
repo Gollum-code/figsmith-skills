@@ -41,6 +41,19 @@ def find_browser() -> str | None:
     return found
 
 
+def sandbox_flags() -> list[str]:
+    """Chrome flags needed to start on this host.
+
+    `--no-sandbox` is only required when the process runs as root (containers, CI): the
+    Chromium sandbox refuses to start as root. On a normal desktop session it is a
+    needless hardening loss, so it is opt-in rather than unconditional. Set
+    FIGSMITH_NO_SANDBOX=1 to force it on for an unusual environment.
+    """
+    forced = os.environ.get("FIGSMITH_NO_SANDBOX", "").strip().lower() in {"1", "true", "yes"}
+    is_root = hasattr(os, "geteuid") and os.geteuid() == 0
+    return ["--no-sandbox"] if (forced or is_root) else []
+
+
 def svg_to_png(svg_path: str | Path, out_path: str | Path, width_px: int | None = None,
                dpi: int | None = None) -> str:
     """Rasterize an SVG to PNG.
@@ -90,7 +103,7 @@ def _browser_raster(svg_file: Path, out: Path, width_px: int | None, dpi: int | 
             "--hide-scrollbars",
             "--force-device-scale-factor=1",
             f"--window-size={target_w},2400",
-            "--no-sandbox",
+            *sandbox_flags(),
             f"--screenshot={raw}",
             f"file:///{page.as_posix()}",
         ]

@@ -119,7 +119,7 @@ def _rasterize_pdf_via_browser(pdf_path: Path, out_png: Path) -> None:
     is verified through this raster proxy. Falls back silently to no proxy, in which case
     the structural PDF checks still run.
     """
-    from backends.png import find_browser
+    from backends.png import find_browser, sandbox_flags
 
     browser = find_browser()
     if not browser or not pdf_path.exists():
@@ -142,7 +142,7 @@ def _rasterize_pdf_via_browser(pdf_path: Path, out_png: Path) -> None:
         subprocess.run([
             browser, "--headless=new", "--disable-gpu", "--hide-scrollbars",
             "--force-device-scale-factor=1", "--window-size=1600,2200",
-            "--no-sandbox", f"--screenshot={raw}", f"file:///{page.as_posix()}",
+            *sandbox_flags(), f"--screenshot={raw}", f"file:///{page.as_posix()}",
         ], capture_output=True, timeout=120, check=False)
         if raw.exists():
             from PIL import Image
@@ -165,25 +165,76 @@ def png_is_real(png_path: Path) -> bool:
     return img.width > 100 and img.height > 100
 
 
+def _embedded_image_areas(data: bytes) -> list[int]:
+    """Pixel areas of embedded image XObjects (/Width x /Height).
+
+    A small logo is legitimate; a raster that covers the page is a deliverable that was
+    never vector. Raw-bytes scanning is coarse but adequate: every image XObject carries
+    /Subtype /Image, and its /Width and /Height sit in the same dictionary.
+    """
+    areas: list[int] = []
+    for m in re.finditer(rb"/Subtype\s*/Image", data):
+        window = data[max(0, m.start() - 600): m.start() + 600]
+        w = re.search(rb"/Width\s+(\d+)", window)
+        h = re.search(rb"/Height\s+(\d+)", window)
+        if w and h:
+            areas.append(int(w.group(1)) * int(h.group(1)))
+    return areas
+
+
 def _pdf_is_vector(pdf_path: Path) -> bool:
-    """A real vector PDF has a content stream with drawing operators and no large
-    embedded image XObject covering the page. A 'PNG wrapped in PDF' fails here."""
+    """A real vector PDF has a content stream with drawing operators and no embedded
+    image covering the page. A 'PNG wrapped in PDF' fails here; a small logo does not."""
+    import base64
     import zlib
 
     data = pdf_path.read_bytes()
     if not data.startswith(b"%PDF-"):
         return False
-    if b"/Image" in data and b"/Subtype /Image" in data:
-        # an embedded image is allowed for logos, but a full-page one is a raster deliverable
+
+    # An image is only disqualifying when it is page-sized. Compare its pixel area to the
+    # page area (points^2): at 1x a full-page raster is roughly page_area pixels, so 50%
+    # of the page cleanly separates "the deliverable" from "a logo in the corner".
+    page_area = 0.0
+    mb = re.search(rb"/MediaBox\s*\[\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\]", data)
+    if mb:
+        page_area = abs(float(mb.group(3)) - float(mb.group(1))) * \
+                    abs(float(mb.group(4)) - float(mb.group(2)))
+    limit = 0.5 * page_area if page_area else 1_000_000
+    if any(area >= limit for area in _embedded_image_areas(data)):
         return False
+
     streams = re.findall(rb"stream\r?\n(.*?)endstream", data, re.S)
-    for stream in streams:
+
+    def decode_stream(raw: bytes) -> list[bytes]:
+        """The stream may be plain, Flate, ASCII85, or ASCII85+Flate (reportlab's
+        default for pages with images). Try each so operator detection does not
+        silently fail on a perfectly valid vector PDF."""
+        candidates = [raw]
         try:
-            content = zlib.decompress(stream)
+            candidates.append(zlib.decompress(raw))
         except Exception:  # noqa: BLE001
-            content = stream
-        if b" re" in content or b" l\n" in content or b"BT" in content:
-            return True
+            pass
+        try:
+            a85 = base64.a85decode(raw.strip(), adobe=True)
+            candidates.append(a85)
+            try:
+                candidates.append(zlib.decompress(a85))
+            except Exception:  # noqa: BLE001
+                pass
+        except Exception:  # noqa: BLE001
+            pass
+        return candidates
+
+    for m in re.finditer(rb"stream\r?\n(.*?)endstream", data, re.S):
+        # Image data is binary and can contain "BT" by coincidence. Images are judged
+        # by the area check above, so skip them here.
+        header = data[max(0, m.start() - 800): m.start()]
+        if b"/Subtype /Image" in header:
+            continue
+        for content in decode_stream(m.group(1)):
+            if b" re" in content or b" l\n" in content or b"BT" in content:
+                return True
     return False
 
 
