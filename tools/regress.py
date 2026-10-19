@@ -115,21 +115,43 @@ def run_case(case_dir: Path, outdir: Path, bless: bool = False) -> dict:
         result["passed"] = False
 
     # 4. blessed comparison
+    #
+    # Pixel comparison is only meaningful between renders from the same environment:
+    # different fonts (matplotlib) and different rasterizers (browser vs Pillow) move
+    # every glyph, which is not a regression. So a baseline records the platform it was
+    # taken on, and a platform mismatch SKIPS the comparison instead of failing on it.
+    # The deterministic checks above still gate on every platform.
     expected = case_dir / "expected.png"
+    meta_path = case_dir / "meta.json"
     if bless:
         import shutil
 
         shutil.copyfile(png, expected)
-        result["steps"]["blessed"] = "recorded"
+        meta_path.write_text(json.dumps({
+            "platform": sys.platform,
+            "ink_ratio": round(_ink_ratio(png), 4),
+            "blessed_by": f"python {sys.version_info.major}.{sys.version_info.minor}",
+        }, indent=2), encoding="utf-8")
+        result["steps"]["blessed"] = f"recorded ({sys.platform})"
     elif expected.exists():
-        a, b = _ink_ratio(expected), _ink_ratio(png)
-        drift = abs(a - b)
-        result["steps"]["blessed_drift"] = round(drift, 4)
-        if drift > 0.02:
-            result["passed"] = False
-            result["steps"]["blessed"] = f"drift {drift:.3f} > 0.02"
+        meta = {}
+        if meta_path.exists():
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                meta = {}
+        if meta.get("platform") and meta["platform"] != sys.platform:
+            result["steps"]["blessed"] = (
+                f"skipped (baseline {meta['platform']} != {sys.platform})")
         else:
-            result["steps"]["blessed"] = "ok"
+            a, b = _ink_ratio(expected), _ink_ratio(png)
+            drift = abs(a - b)
+            result["steps"]["blessed_drift"] = round(drift, 4)
+            if drift > 0.02:
+                result["passed"] = False
+                result["steps"]["blessed"] = f"drift {drift:.3f} > 0.02"
+            else:
+                result["steps"]["blessed"] = "ok"
     else:
         result["steps"]["blessed"] = "no baseline yet (run --blessed)"
 
