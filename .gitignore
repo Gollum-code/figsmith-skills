@@ -34,6 +34,9 @@ figure-output/
 renders/
 *.log
 
+# 视觉裁判的运行记录（本地产物）
+verify-results/
+
 # 内部计划文档（不外泄）
 *-plan.md
 PLAN.md

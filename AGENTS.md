@@ -57,21 +57,25 @@ FigSmith 是一个**纯文件技能树**。没有编译，没有注册表，没�
 | `backends/png.py` 浏览器光栅化 | 系统 Chrome / Edge | 自动降级到 Pillow 光栅化（文字 shaping 精度下降，几何仍准确） |
 | `backends/pdf.py` | reportlab | PDF 输出不可用 |
 | `backends/pptx.py` | python-pptx | PPTX 输出不可用 |
-| `backends/drawio.py` | 无（纯 XML） | — |
+| `backends/drawio.py` | 无（纯 XML + zlib） | — |
+| `backends/html2pdf.py` | 系统 Chrome / Edge | **不可用**（PDF 导出必须靠浏览器 print-to-pdf，无降级路径） |
+| `core/tokens/loader.py` 文本度量 | fontTools | 降级到 CJK/latin 估算（可能造成拆行位置偏移） |
 
-**不依赖联网字体。** 缺字体时按 token 里的 `*_fallback` 降级。
+**不依赖联网字体。** 缺字体时按 token 里的 `*_fallback` 降级；用 `python -m core.tokens.loader --check` 查本机缺哪一级。
 
 ---
 
 ## 4. 验证安装
 
 ```bash
-python -m core.ir examples/arch-diagram/layered/ir.json     # IR 合法
-python -m core.verify.check_contrast <某张.png>              # 对比度自检
-python -m backends.svg examples/arch-diagram/layered/ir.json -o /tmp/t.svg
+python -m core.ir examples/arch-diagram/layered-arch/arch.ir.json   # IR 合法
+python -m core.verify.check_contrast <某张.png>                     # 对比度自检
+python -m backends.svg examples/arch-diagram/layered-arch/arch.ir.json -o /tmp/t.svg
+python -m core.tokens.loader --check                               # 令牌一致性
+python tools/regress.py                                            # 回归套件
 ```
 
-三个都通 = 装好了。
+五条都通 = 装好了。
 
 ---
 

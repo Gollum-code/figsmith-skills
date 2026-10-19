@@ -12,9 +12,12 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import sys
+import urllib.parse
 import xml.etree.ElementTree as ET
+import zlib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -108,6 +111,21 @@ def _xml_unescape(text: str) -> str:
             .replace("&quot;", '"').replace("&amp;", "&"))
 
 
+def _decode_compressed_diagram(diagram: ET.Element) -> str | None:
+    """Decode a compressed draw.io diagram body.
+
+    draw.io stores most saved diagrams as raw-DEFLATE + base64 + URL-encoding inside the
+    <diagram> element instead of inline XML. Real exported .drawio files are almost always
+    in this form, so refusing them would make the importer useless on anything but
+    hand-written fixtures.
+    """
+    text = (diagram.text or "").strip()
+    if not text:
+        return None
+    raw = base64.b64decode(urllib.parse.unquote(text) + "=" * (-len(text) % 4), validate=False)
+    return zlib.decompress(raw, -15).decode("utf-8")
+
+
 def mxfile_to_ir(xml_text: str, tokens: str = "academic") -> dict:
     """Read a draw.io file back into a FigSmith IR.
 
@@ -119,10 +137,15 @@ def mxfile_to_ir(xml_text: str, tokens: str = "academic") -> dict:
     diagram = root.find(".//diagram")
     name = diagram.get("name") if diagram is not None else "drawio"
 
-    # the graph model may be plain XML or deflate+base64 encoded; handle the plain case
+    # the graph model may be plain XML or deflate+base64 encoded; try inline first, then
+    # decompress the <diagram> body and re-parse it.
     model = root.find(".//mxGraphModel")
+    if model is None and diagram is not None:
+        decoded = _decode_compressed_diagram(diagram)
+        if decoded:
+            model = ET.fromstring(decoded)
     if model is None:
-        raise ValueError("drawio file has no inline mxGraphModel (compressed files are not supported)")
+        raise ValueError("drawio file has no mxGraphModel (inline or compressed)")
     graph_root = model.find("root")
     if graph_root is None:
         raise ValueError("drawio mxGraphModel has no <root>")
@@ -150,7 +173,7 @@ def mxfile_to_ir(xml_text: str, tokens: str = "academic") -> dict:
                 topo_edges.append(edge)
             continue
 
-        kind = "band" if "verticalAlign=top" in style and "strokeColor=none" in style else "box"
+        kind = "band" if "container=1" in style or ("verticalAlign=top" in style and "strokeColor=none" in style) else "box"
         if "text;" in style and "fillColor=none" in style:
             kind = "label"
         topo_nodes.append({"id": cid, "kind": kind})
@@ -164,6 +187,13 @@ def mxfile_to_ir(xml_text: str, tokens: str = "academic") -> dict:
             layout_nodes[cid] = {"x": x, "y": y, "w": w, "h": h}
             max_x = max(max_x, x + w)
             max_y = max(max_y, y + h)
+        else:
+            # A cell with no geometry is usually a group/pool frame: keep the node so the
+            # IR stays faithful to the source, but give it a default box so the layout
+            # engine has something real to place.
+            layout_nodes[cid] = {"x": 0, "y": 0, "w": 200, "h": 60}
+            max_x = max(max_x, 200)
+            max_y = max(max_y, 60)
 
     scale = 12.0
     return {

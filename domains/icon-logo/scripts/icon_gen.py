@@ -12,7 +12,10 @@ Spec format:
      "circles": [{"cx": 12, "cy": 12, "r": 4, "fill": true}]}
 
 Usage:
-    python -m domains.icon-logo.scripts.icon_gen spec.json -o icon.svg [--color #1A1D21]
+    python -m domains.icon-logo.scripts.icon_gen spec.json -o icon.svg [--color INK]
+
+Colors come from the academic token set by default; --color takes an explicit hex only
+because icons are single-color geometry, not styled figures.
 """
 
 from __future__ import annotations
@@ -25,7 +28,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
+from core.tokens import load as load_tokens  # noqa: E402
+
 SNAP = 2.0  # key coordinates sit on the 2px grid; half-pixels are what makes icons fuzzy
+
+# Icons are single-color geometry, so the color comes from the token set's ink rather
+# than a hardcoded hex. Switching style = switching the token name.
+DEFAULT_COLOR = load_tokens("academic").c("colors.ink")
 
 
 def _snap_numbers(path_d: str) -> str:
@@ -43,7 +52,7 @@ def _snap_numbers(path_d: str) -> str:
     return re.sub(r"-?\d+\.?\d*", repl, path_d)
 
 
-def render(spec: dict, color: str = "#1A1D21") -> str:
+def render(spec: dict, color: str | None = None) -> str:
     grid = int(spec.get("grid", 24))
     stroke_w = int(spec.get("stroke", 2))
     if stroke_w not in (2, 3):
@@ -57,7 +66,8 @@ def render(spec: dict, color: str = "#1A1D21") -> str:
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{grid}" height="{grid}" '
         f'viewBox="0 0 {grid} {grid}">',
     ]
-    safe_color = color if re.fullmatch(r"#[0-9A-Fa-f]{3,6}", color) else "#1A1D21"
+    requested = color or DEFAULT_COLOR
+    safe_color = requested if re.fullmatch(r"#[0-9A-Fa-f]{3,6}", requested) else DEFAULT_COLOR
 
     for stroke in spec.get("strokes", []):
         d = _snap_numbers(stroke["d"])
@@ -101,7 +111,7 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="Generate a grid-clean SVG icon from a spec.")
     ap.add_argument("spec")
     ap.add_argument("-o", "--out", default=None)
-    ap.add_argument("--color", default="#1A1D21")
+    ap.add_argument("--color", default=None, help="override ink color (hex); default from tokens")
     args = ap.parse_args(argv)
 
     spec = json.loads(Path(args.spec).read_text(encoding="utf-8-sig"))

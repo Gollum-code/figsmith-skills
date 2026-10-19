@@ -11,10 +11,42 @@
 python -m core.ir examples/arch-diagram/layered-arch/arch.ir.json
 python -m backends.svg examples/arch-diagram/layered-arch/arch.ir.json -o /tmp/t.svg
 python -m core.verify.check_contrast examples/arch-diagram/layered-arch/arch.png
+python -m core.tokens.loader --check
+python tests/test_verify.py
 python tools/regress.py
 ```
 
-四条全绿 = 环境就绪。任一失败看报错，先修环境再画图。
+全绿 = 环境就绪。任一失败看报错，先修环境再画图。
+
+---
+
+## 1. 一条命令跑通：intent → 出图 → 验收
+
+**用它当**：不想手动串五个命令。
+
+```bash
+python -m tools.figsmith pipeline "三层架构图" -o out/arch
+```
+
+它做四件事：`route`（语义路由）→ `scaffold`（生成起点）→ `render`（选对后端）→ `verify`（三查）。
+
+**诚实原则**：统计图意图会**停下来要数据**（退出码 2），而不是编造数字：
+
+```bash
+$ python -m tools.figsmith pipeline "论文里的分组柱状图" -o out/bar
+blocked: statistical scaffold needs real data before it can render (no numbers are invented).
+```
+
+填好数据源后再 `render` + `verify`。
+
+拆开用：
+
+```bash
+python -m tools.figsmith route "社媒 banner"        # 只路由
+python -m tools.figsmith scaffold "分层架构图" -o out/x   # 只生成骨架
+python -m tools.figsmith render out/x.ir.json -o out/x    # 只渲染
+python -m tools.figsmith verify out/x.ir.json            # 只验收
+```
 
 ---
 
@@ -87,12 +119,14 @@ python -m core.verify.check_tiling slide.png
 
 ```bash
 python -m domains.docs-diagram.scripts.parse_mermaid input.mmd -o out.ir.json
+python -m domains.docs-diagram.scripts.parse_drawio input.drawio -o out.ir.json
 python -m backends.svg out.ir.json -o out.svg --scale 12
 python -m backends.png out.svg -o out.png --width 1600
 ```
 
 **要点**：
 - **解析后必须重渲染，绝不透传**——IR 是唯一的风格载体。
+- drawio 支持**压缩格式**（deflate+base64，draw.io 默认保存方式），不限于手写的明文 XML。
 - 源文件与产物一起留存，源文件不改。
 - 往返一致：节点与连接一个不少、方向不反、标签不改顺。
 - 域细节见 `domains/docs-diagram/SKILL.md`。
@@ -158,19 +192,49 @@ python -m core.probe.probe_geometry ref.png --suggest-ir skeleton.json
 | 统计图渲染成空 | 走错后端 | 有数据必须走 `mpl2svg`，见配方 6 |
 | PDF 多页 | 页面尺寸没设 | 给 `html2pdf` 显式 `--size` |
 | PNG 截断 | 视口高度不够 | 用 `html2pdf` 的代理（按页高捕获），别用固定窗口 |
+| 令牌解析不出来 | token 路径写错 | `python -m core.tokens.loader --check` 查结构与对比度 |
+| 三个脚本全过但看着不对 | 几何查不了「审美」 | 派视觉裁判，见下 |
 
-**原则**：按根因修，不做局部补丁；不伪造 PASS——没有视觉工具就明说。
+### 8.1 派视觉裁判（三查之后才派）
+
+```bash
+# 1) 组装派发（元素清单自动从 IR 生成，验收标准自动从 SKILL.md 取原文）
+python -m core.verify.judge build out/arch.png --ir out/arch.ir.json \
+    --domain arch-diagram --chart-type layered --intent "分层架构图" > dispatch.md
+
+# 2) 把 dispatch.md 喂给宿主的视觉模型，把它的 JSON 回复存成 reply.json
+
+# 3) 回收裁定
+python -m core.verify.judge collect out/arch.png --verdict-file reply.json \
+    --out verify-results/records.jsonl
+```
+
+**铁律：没有回复 = PENDING，绝不伪造 PASS。** 派发协议原文见 `python -m core.verify.judge protocol`。
+
+| 情况 | 结果 |
+|---|---|
+| 没给 `--verdict-file` | `PENDING`（视觉验收待完成） |
+| 回复不是合法 JSON | `PENDING` |
+| 回复 `PASS` 但列了 major issue | 按协议改判 `FAIL` |
+| 回复 `PASS` 且 issues 为空 | `PASS` |
+
+**原则**：按根因修，不做局部补丁；修完定向复检，不重跑全量。
 
 ---
 
-## 9. 回归与画廊
+## 9. 回归、令牌与 CI
 
 ```bash
-python tools/regress.py              # 跑回归套件
+python tests/test_verify.py          # 验收契约单测（14 项）
+python tests/test_parse_drawio.py    # drawio 解析（含压缩）
+python tools/regress.py              # 回归套件
 python tools/regress.py --blessed    # 重录基线（确认改动是预期的之后再跑）
+python -m core.tokens.loader --check # 令牌一致性（结构硬失败，对比度/字体为告警）
 python -m tools.catalog merge        # 重建 gallery/catalog.json
 python -m tools.build_gallery        # 重建 gallery/index.html（自包含，可双击）
 ```
+
+**CI 门禁**（`.github/workflows/ci.yml`，push/PR 触发）依次跑：每个 IR 校验 → 单测 → 回归 → 四出一致性 → 令牌一致性 → 无内联 hex → 画廊同步。本地等价命令就是上面这几条。改动前先本地跑一遍，别让 CI 替你发现。
 
 ---
 

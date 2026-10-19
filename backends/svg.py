@@ -306,18 +306,21 @@ def _text_block(x: float, y: float, w: float, h: float, lines: list[str], size_p
     lh = size_px * tokens.get("fonts.line_height_ratio", 1.35)
     total = lh * len(lines)
     start_y = y + (h - total) / 2 + size_px * 0.82
+    # The halo that separates text from a busy background is the surface color, so it
+    # stays correct under a dark token set instead of always being white.
+    halo = tokens.c("colors.surface")
     out = []
     for i, line in enumerate(lines):
         cy = start_y + i * lh
         if anchor == "middle":
             out.append(f'<text x="{x + w / 2:.2f}" y="{cy:.2f}" font-size="{size_px:.2f}" '
                        f'fill="{color}" text-anchor="middle" '
-                       f'paint-order="stroke" stroke="#FFFFFF" stroke-width="{max(size_px * 0.12, 2.5):.2f}">'
+                       f'paint-order="stroke" stroke="{halo}" stroke-width="{max(size_px * 0.12, 2.5):.2f}">'
                        f'{escape(line)}</text>')
         else:
             out.append(f'<text x="{x + 10:.2f}" y="{cy:.2f}" font-size="{size_px:.2f}" '
                        f'fill="{color}" text-anchor="start" '
-                       f'paint-order="stroke" stroke="#FFFFFF" stroke-width="{max(size_px * 0.12, 2.5):.2f}">'
+                       f'paint-order="stroke" stroke="{halo}" stroke-width="{max(size_px * 0.12, 2.5):.2f}">'
                        f'{escape(line)}</text>')
     return out
 
@@ -473,7 +476,8 @@ def _edge_label(edge: dict, x: float, y: float, tokens, labels: dict) -> str:
     # annotation size follows the same pt->px path as body text
     return (f'<text x="{x:.2f}" y="{y:.2f}" font-size="{size:.2f}" '
             f'fill="{tokens.c("colors.ink_secondary")}" '
-            f'paint-order="stroke" stroke="#FFFFFF" stroke-width="3">{escape(text)}</text>')
+            f'paint-order="stroke" stroke="{tokens.c("colors.surface")}" '
+            f'stroke-width="3">{escape(text)}</text>')
 
 
 def main(argv: list[str]) -> int:

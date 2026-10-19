@@ -1,0 +1,79 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy matplotlib Pillow reportlab python-pptx fonttools
+
+      # Every committed IR must validate. A malformed IR is a broken deliverable, and
+      # this is the cheapest check that catches it.
+      - name: validate every IR
+        shell: bash
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r -d '' f; do
+            if ! python -m core.ir "$f"; then fail=1; fi
+          done < <(find . -name '*.ir.json' -not -path './.git/*' -print0)
+          exit $fail
+
+      # Unit tests for the verifier contract, the judge no-fabrication rule, the token
+      # loader, the router, and the drawio parser (incl. compressed files).
+      - name: unit tests
+        run: |
+          python tests/test_verify.py
+          python tests/test_parse_drawio.py
+
+      # The regression suite: validate + render + contrast + tiling + overflow, per
+      # case, and blessed baselines must not drift.
+      - name: regression suite
+        run: python tools/regress.py
+
+      # One IR, four outputs, content must agree.
+      - name: four-way consistency
+        run: |
+          python tools/four_way_check.py examples/arch-diagram/layered-arch/arch.ir.json
+
+      # Token files must be internally consistent and every referenced color path
+      # must resolve, or figures fail silently at render time.
+      - name: token consistency
+        run: python -m core.tokens.loader --check
+
+      # No hex literal may appear in code: colors go through the token path only
+      # (METHOD 4). Allowed and self-documented: lines marked `# hex-ok` (render
+      # fallbacks / CLI defaults), `.get()`/`.pop()` fallback args, and parameter
+      # defaults. A bare hex anywhere else is a bypass of the token system.
+      - name: no inline hex in code
+        shell: bash
+        run: |
+          set -e
+          hits=$(grep -rnE '#[0-9A-Fa-f]{6}\b' --include='*.py' core backends domains tools \
+                 | grep -v '__pycache__/' \
+                 | grep -vE 'hex-ok|\.get\(|\.pop\(|default=|# ->' || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            echo "inline hex found outside token defaults"
+            exit 1
+          fi
+          echo "no inline hex in code"
+
+      - name: catalog index and gallery in sync
+        run: |
+          python -m tools.catalog merge
+          python -m tools.build_gallery
+          git diff --exit-code gallery/

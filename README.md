@@ -4,7 +4,7 @@
 
 面向 AI Agent 的配图技能体系 —— 把「画图」从像素操作改写成**声明式代码生成**，再用独立验收闭环兜底。
 
-**状态：可用。** 七大域、七后端、验收闭环俱全，回归套件 `4/4` 通过。常见任务见 [`docs/cookbook.md`](docs/cookbook.md)。
+**状态：可用。** 七大域、七后端、验收闭环俱全，回归套件 `4/4` 通过，CI 门禁全绿。常见任务见 [`docs/cookbook.md`](docs/cookbook.md)。
 
 ---
 
@@ -69,8 +69,7 @@ figsmith-skills/
 |---|---|---|
 | `paper-figure` | SVG / MPL | 论文结构图 + 统计图（65 图型） |
 | `arch-diagram` | SVG | 分层 / 流水线 / 状态机 / 时序 / 部署 / 组件 |
-| `docs-diagram` | SVG（解析重渲染） | mermaid / drawio 源消化成统一风格 |
-| `infographic` | SVG / HTML | 时间轴 / 对比 / 步骤 / 数据大字 / 长图 |
+| `docs-diagram` | SVG（解析重渲染） | mermaid / drawio 源消化成统一风格 || `infographic` | SVG / HTML | 时间轴 / 对比 / 步骤 / 数据大字 / 长图 |
 | `deck-slides` | HTML→PDF | 标题页 / 内容页 / 过渡页 / 结尾页 |
 | `poster-flyer` | HTML→PDF | 学术海报 / 传单 / 社媒 banner |
 | `icon-logo` | SVG | 2px 网格对齐的图标 / 标识 |
@@ -86,13 +85,29 @@ figsmith-skills/
 ```bash
 ./install.sh --target ~/.claude/skills            # 或 .\install.ps1，安装
 
+# 一句话意图 → 路由 → 生成 → 验收，一条命令跑通
+python -m tools.figsmith pipeline "三层架构图" -o out/arch
+
+# 拆开也有：路由 / 生成骨架 / 渲染 / 验收
+python -m tools.figsmith route "论文里的分组柱状图"
+python -m tools.figsmith scaffold "社媒 banner" -o out/banner
+
+# 单步工具
 python -m core.ir examples/arch-diagram/layered-arch/arch.ir.json   # 校验 IR
-python -m backends.svg examples/arch-diagram/layered-arch/arch.ir.json -o out.svg
-python -m tools.catalog route "论文里的分组柱状图"                    # 语义路由
+python -m core.tokens.loader --check                               # 令牌一致性
+python -m core.verify.judge build fig.png --ir fig.ir.json --domain paper-figure  # 派发视觉裁判
 python tools/regress.py                                            # 回归套件
+python tests/test_verify.py                                        # 验收契约单测
 ```
 
 详见 [`docs/cookbook.md`](docs/cookbook.md)。
+
+## 工程化
+
+- **CI 门禁**（`.github/workflows/ci.yml`）：每个 IR 校验、单测、回归、四出一致性、令牌一致性、无内联 hex、画廊同步。
+- **视觉裁判**（`core/verify/judge.py`）：把 `judge_template.md` 接成可运行步骤——组装派发、回收裁定。**没有裁定回复 = PENDING，绝不伪造 PASS。**
+- **drawio 往返**：`parse_drawio.py` 支持压缩 `.drawio`（deflate+base64），解析后按本体系重渲染。
+- **端到端 CLI**（`tools/figsmith.py`）：`intent → route → scaffold → render → verify`；统计图缺数据时**报阻塞而非编数字**。
 
 ## 许可
 

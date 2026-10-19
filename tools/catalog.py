@@ -16,12 +16,29 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DOMAINS_DIR = ROOT / "domains"
 GALLERY = ROOT / "gallery"
+
+
+def _hit(needle: str, text: str) -> bool:
+    """Keyword match that respects word boundaries for ASCII terms.
+
+    Plain substring matching makes short keywords match inside unrelated words: "er"
+    (entity-relationship) fires on "banner", routing a banner to the ER diagram. ASCII
+    keywords therefore match as whole words; CJK has no word boundaries, so those stay
+    substring matches.
+    """
+    n = needle.lower()
+    if not n:
+        return False
+    if n.isascii() and n.isalnum():
+        return re.search(rf"\b{re.escape(n)}\b", text) is not None
+    return n in text
 
 
 def load_domain_catalogs() -> list[dict]:
@@ -80,12 +97,13 @@ def route(intent: str, index: dict | None = None) -> list[dict]:
     scored: list[tuple[int, int, dict]] = []
     for entry in index["chart_types"]:
         score = 0
-        if entry["id"].lower() == text or entry["id"].lower() in text:
+        eid = entry["id"].lower()
+        if eid == text or _hit(eid, text):
             score += 10
-        if entry.get("name", "").lower() in text:
+        if entry.get("name", "") and entry.get("name", "").lower() in text:
             score += 6
         for kw in entry.get("keywords", []):
-            if kw.lower() in text:
+            if _hit(kw, text):
                 score += 3
         if score:
             scored.append((-score, domain_priority.get(entry["domain"], 99), entry))

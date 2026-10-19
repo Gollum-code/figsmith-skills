@@ -266,6 +266,99 @@ def available() -> list[str]:
     return sorted(p.stem for p in TOKENS_DIR.glob("*.json") if not p.name.startswith("_"))
 
 
+# ---------- consistency check ----------
+
+REQUIRED_COLORS = (
+    "colors.ink", "colors.ink_secondary", "colors.surface", "colors.surface_alt",
+    "colors.surface_band", "colors.border", "colors.axis", "colors.grid",
+)
+REQUIRED_RAMPS = ("colors.categorical", "colors.accent")
+REQUIRED_SCALARS = (
+    "stroke.thin", "stroke.medium", "stroke.arrow", "grid.unit", "canvas.margin",
+    "fonts.size_pt.figure_title", "fonts.size_pt.tick_label", "fonts.size_pt.min_readable",
+)
+# A renderable token set has fonts and ink; palette.json is a ramp dependency only.
+def _is_renderable(data: dict) -> bool:
+    return bool(_dig(data, "fonts.role")) or bool(_dig(data, "colors.ink"))
+
+
+def _font_chain_ok(t: "Tokens", stack: str, kind: str) -> tuple[bool, str]:
+    """True if any font in {primary, fallback} resolves on this host."""
+    primary = t.get(f"fonts.{stack}.{kind}")
+    fallback = t.get(f"fonts.{stack}.{kind}_fallback")
+    names = [n for n in (primary, fallback) if n]
+    if not names:
+        return True, ""
+    if any(_find_font_file(n) for n in names):
+        return True, ""
+    return False, f"font stack fonts.{stack}.{kind} resolves to no file (tried {names})"
+
+
+def check(name: str) -> tuple[list[str], list[str]]:
+    """Report what would break rendering for this token set.
+
+    Returns (problems, warnings). Problems are structural and host-independent, so they
+    fail CI: a color/scalar path that does not resolve, a missing ramp, a non-hex entry.
+    Warnings are advisory and host-dependent, so they never fail CI: a categorical color
+    that grays too close to the surface (a design judgment), or a font fallback chain
+    with no file on *this* host (CI runners and designer boxes differ).
+    """
+    problems: list[str] = []
+    warnings: list[str] = []
+    try:
+        t = load(name)
+    except (ValueError, OSError, json.JSONDecodeError) as exc:
+        return [f"token set {name!r} failed to load: {exc}"], []
+
+    if not _is_renderable(t.dump()):
+        return problems, warnings  # palette.json and friends: dependency files
+
+    for path in REQUIRED_COLORS:
+        try:
+            t.c(path)
+        except KeyError:
+            problems.append(f"{name}: color path {path} does not resolve")
+    for path in REQUIRED_SCALARS:
+        try:
+            t.s(path)
+        except KeyError:
+            problems.append(f"{name}: scalar path {path} does not resolve")
+
+    surface = t.get("colors.surface")
+    for path in REQUIRED_RAMPS:
+        ramp = t.get(path)
+        if not isinstance(ramp, list) or not ramp:
+            problems.append(f"{name}: ramp {path} is missing or empty")
+            continue
+        for col in ramp:
+            if not isinstance(col, str) or not col.startswith("#"):
+                problems.append(f"{name}: ramp {path} has a non-hex entry {col!r}")
+            elif surface and gray_delta(col, surface) < 40:
+                warnings.append(
+                    f"{name}: {path} color {col} clears only "
+                    f"{gray_delta(col, surface):.1f} against surface (min 40)"
+                )
+
+    for stack in ("sans", "serif", "mono"):
+        for kind in ("latin", "cjk"):
+            if not t.get(f"fonts.{stack}.{kind}"):
+                continue
+            ok, msg = _font_chain_ok(t, stack, kind)
+            if not ok:
+                warnings.append(f"{name}: {msg} (host-specific)")
+    return problems, warnings
+
+
+def check_all() -> tuple[list[str], list[str]]:
+    problems: list[str] = []
+    warnings: list[str] = []
+    for name in available():
+        p, w = check(name)
+        problems.extend(p)
+        warnings.extend(w)
+    return problems, warnings
+
+
 def hex_to_gray(hex_color: str) -> float:
     """Perceived luminance 0-255. The gray-difference >=40 rule uses this
     (see core/verify/check_contrast.py)."""
@@ -281,4 +374,37 @@ def gray_delta(hex_a: str, hex_b: str) -> float:
     return abs(hex_to_gray(hex_a) - hex_to_gray(hex_b))
 
 
-__all__ = ["Tokens", "load", "available", "hex_to_gray", "gray_delta"]
+__all__ = ["Tokens", "load", "available", "check", "check_all",
+           "hex_to_gray", "gray_delta"]
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Token-set consistency check.")
+    ap.add_argument("--check", action="store_true", help="check every token set")
+    ap.add_argument("--set", dest="token_set", default=None, help="check one set only")
+    args = ap.parse_args(argv)
+
+    targets = [args.token_set] if args.token_set else available()
+    problems: list[str] = []
+    warnings: list[str] = []
+    for name in targets:
+        p, w = check(name)
+        problems.extend(p)
+        warnings.extend(w)
+
+    for w in warnings:
+        print(f"[warn] {w}")
+    for p in problems:
+        print(f"[FAIL] {p}")
+    if problems:
+        print(f"\n{len(problems)} problem(s), {len(warnings)} warning(s) "
+              f"across {len(targets)} token set(s)")
+        return 1
+    print(f"ok: {len(targets)} token set(s) consistent, {len(warnings)} warning(s)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

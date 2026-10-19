@@ -124,7 +124,7 @@ def _pillow_raster(svg_file: Path, out: Path, width_px: int | None) -> str:
     scale = (width_px / w0) if width_px else 1.0
     W, H = int(w0 * scale), int(h0 * scale)
 
-    img = Image.new("RGB", (W, H), "#FFFFFF")
+    img = Image.new("RGB", (W, H), "#FFFFFF")  # hex-ok: canvas base for the Pillow fallback
     d = ImageDraw.Draw(img)
     try:
         font = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", max(int(14 * scale), 8))
