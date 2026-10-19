@@ -39,25 +39,29 @@ NODE_SHAPES = [
 ]
 
 EDGE_RE = re.compile(
-    r"(?P<a>[A-Za-z0-9_]+)\s*"
+    r"(?P<a>[A-Za-z0-9_]{1,120})\s*"
     r"(?P<arrow><?-{1,3}>|<--?>|-\.->|-\.-|={2,}>|--o|--x|--)\s*"
-    r"(?:\|(?P<label>[^|]*)\|\s*)?"
-    r"(?P<b>[A-Za-z0-9_]+)"
+    r"(?:\|(?P<label>[^|\n]{0,200})\|\s*)?"
+    r"(?P<b>[A-Za-z0-9_]{1,120})"
 )
 
 # Any inline node definition, used both standalone (`a[Text]`) and inside an edge
 # (`a[Text] --> b[Text]`). Matching greedily over the whole line is what lets the edge
 # survive: stripping the definition first would eat the source node.
+#
+# Every inner body is bounded: `[^)]*` on an unterminated `[` costs exponential
+# backtracking, which measured 65s on a single 50 KB line. The cap is far above any real
+# label while keeping the match linear.
 INLINE_NODE_RE = re.compile(
-    r"(?P<id>[A-Za-z0-9_]+)\s*"
+    r"(?P<id>[A-Za-z0-9_]{1,120})\s*"
     r"(?P<shape>"
-    r"\[\(\([^)]*\)\)\]"      # (((circle)))
-    r"|\[\[[^\]]*\]\]"        # [[subroutine]]
-    r"|\[\([^)]*\)\]"         # [(database)]
-    r"|\(\([^)]*\)\)"         # ((circle))
-    r"|\[[^\]]*\]"            # [rect]
-    r"|\([^)]*\)"             # (round)
-    r"|\{[^}]*\}"             # {decision}
+    r"\[\(\([^)]{0,400}\)\)\]"      # (((circle)))
+    r"|\[\[[^\]]{0,400}\]\]"        # [[subroutine]]
+    r"|\[\([^)]{0,400}\)\]"         # [(database)]
+    r"|\(\([^)]{0,400}\)\)"         # ((circle))
+    r"|\[[^\]]{0,400}\]"            # [rect]
+    r"|\([^)]{0,400}\)"             # (round)
+    r"|\{[^}]{0,400}\}"             # {decision}
     r")"
 )
 
@@ -222,8 +226,24 @@ def parse_state(lines: list[str]) -> dict:
     return {"nodes": nodes, "edges": edges, "order": order}
 
 
+MAX_SOURCE_CHARS = 2_000_000
+MAX_LINE_CHARS = 4_000
+MAX_LINES = 20_000
+
+
 def parse(source: str) -> dict:
-    lines = [ln.rstrip() for ln in source.splitlines() if ln.strip()]
+    # Reject pathological input before any regex runs. A single absurd line is the
+    # shape that turns a linear parser quadratic (measured 65s at 50 KB); real diagrams
+    # never approach these bounds, so rejecting is cheaper and safer than truncating.
+    if len(source) > MAX_SOURCE_CHARS:
+        raise MermaidError(f"source too large: {len(source)} > {MAX_SOURCE_CHARS} chars")
+    raw_lines = source.splitlines()
+    if len(raw_lines) > MAX_LINES:
+        raise MermaidError(f"too many lines: {len(raw_lines)} > {MAX_LINES}")
+    lines = [ln.rstrip() for ln in raw_lines if ln.strip()]
+    for ln in lines:
+        if len(ln) > MAX_LINE_CHARS:
+            raise MermaidError(f"line too long: {len(ln)} > {MAX_LINE_CHARS} chars")
     if not lines:
         raise MermaidError("empty source")
     header = lines[0].strip().lower()

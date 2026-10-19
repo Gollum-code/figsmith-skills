@@ -38,16 +38,25 @@ jobs:
         run: |
           python tests/test_verify.py
           python tests/test_parse_drawio.py
+          python tests/test_security.py
 
       # The regression suite: validate + render + contrast + tiling + overflow, per
       # case, and blessed baselines must not drift.
       - name: regression suite
         run: python tools/regress.py
 
-      # One IR, four outputs, content must agree.
+      # Every IR, four outputs, content must agree. Iterating all of them matters: the
+      # statistical route renders through matplotlib, and an arch-only check silently
+      # missed that it was producing empty SVGs.
       - name: four-way consistency
         run: |
-          python tools/four_way_check.py examples/arch-diagram/layered-arch/arch.ir.json
+          fail=0
+          while IFS= read -r -d '' f; do
+            echo "::group::$f"
+            python tools/four_way_check.py "$f" || fail=1
+            echo "::endgroup::"
+          done < <(find . -name '*.ir.json' -not -path './.git/*' -print0)
+          exit $fail
 
       # Token files must be internally consistent and every referenced color path
       # must resolve, or figures fail silently at render time.

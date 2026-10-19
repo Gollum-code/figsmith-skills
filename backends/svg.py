@@ -215,15 +215,18 @@ def resolve_layout(ir: dict, scale: float = 1.0) -> tuple[list[Node], dict]:
     for nid, entry in nodes_layout.items():
         kind = kinds.get(nid, "box")
         if all(k in entry for k in ("x", "y", "w", "h")):
-            x = float(entry["x"]) * px_per_unit
-            y = float(entry["y"]) * px_per_unit
-            w = float(entry["w"]) * px_per_unit
-            h = float(entry["h"]) * px_per_unit
+            # Explicit coordinates are clamped to the canvas: a negative col/row or a
+            # nonsensical size is a spec error, and emitting a negative pixel coordinate
+            # pushes content off-canvas where nothing can verify it.
+            x = max(float(entry["x"]), 0.0) * px_per_unit
+            y = max(float(entry["y"]), 0.0) * px_per_unit
+            w = max(float(entry["w"]), 0.0) * px_per_unit
+            h = max(float(entry["h"]), 0.0) * px_per_unit
         else:
-            col = int(entry.get("col", 0))
-            row = int(entry.get("row", 0))
-            span_c = int(entry.get("col_span", 1))
-            span_r = int(entry.get("row_span", 1))
+            col = max(int(entry.get("col", 0)), 0)
+            row = max(int(entry.get("row", 0)), 0)
+            span_c = max(int(entry.get("col_span", 1)), 1)
+            span_r = max(int(entry.get("row_span", 1)), 1)
             x = origin_x + col * pitch_x
             y = origin_y + row * pitch_y
             w = span_c * box_w_u * px_per_unit + (span_c - 1) * gap_x_u * px_per_unit
@@ -233,8 +236,10 @@ def resolve_layout(ir: dict, scale: float = 1.0) -> tuple[list[Node], dict]:
         max_bottom = max(max_bottom, y + h)
 
     # Derived canvas, not declared: content + symmetric margin (METHOD 2.3).
-    max_col = max((int(e.get("col", 0)) + int(e.get("col_span", 1)) for e in nodes_layout.values()), default=1)
-    max_row = max((int(e.get("row", 0)) + int(e.get("row_span", 1)) for e in nodes_layout.values()), default=1)
+    max_col = max((max(int(e.get("col", 0)), 0) + max(int(e.get("col_span", 1)), 1)
+                   for e in nodes_layout.values()), default=1)
+    max_row = max((max(int(e.get("row", 0)), 0) + max(int(e.get("row_span", 1)), 1)
+                   for e in nodes_layout.values()), default=1)
     right_edge = origin_x + max_col * box_w_u * px_per_unit + (max_col - 1) * gap_x_u * px_per_unit
     bottom_edge = origin_y + max_row * box_h_u * px_per_unit + (max_row - 1) * gap_y_u * px_per_unit
     canvas_w = max(canvas_w_px, right_edge + margin)

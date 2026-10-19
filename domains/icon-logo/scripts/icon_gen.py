@@ -37,6 +37,26 @@ SNAP = 2.0  # key coordinates sit on the 2px grid; half-pixels are what makes ic
 DEFAULT_COLOR = load_tokens("academic").c("colors.ink")
 
 
+# A path `d` is interpolated into an SVG attribute, so it must be validated, not just
+# snapped: a spec is untrusted input. The grammar is the SVG path command set plus
+# numbers, whitespace and comma - nothing that can close the attribute or open a tag.
+_PATH_D_RE = re.compile(
+    r"^[MmLlHhVvCcSsQqTtAaZz0-9eE.,+\-\s]*$"
+)
+
+
+def validate_path_d(path_d: str) -> str:
+    """Reject anything that is not SVG path grammar.
+
+    This is the security boundary: `d` lands inside `d="..."`, so a quote or `<` would
+    break out of the attribute. Non-path characters are rejected outright instead of
+    escaped, because a path containing them is malformed anyway.
+    """
+    if not isinstance(path_d, str) or not _PATH_D_RE.fullmatch(path_d):
+        raise ValueError(f"invalid SVG path data (non-path characters): {path_d[:60]!r}")
+    return path_d
+
+
 def _snap_numbers(path_d: str) -> str:
     """Snap standalone numbers in a path `d` to the grid.
 
@@ -44,6 +64,8 @@ def _snap_numbers(path_d: str) -> str:
     are left alone. This is a helper, not a validator: the spec should already be
     grid-clean, this catches typos.
     """
+    validate_path_d(path_d)
+
     def repl(m: re.Match) -> str:
         val = float(m.group(0))
         if val == int(val) and int(val) % SNAP == 0:
@@ -98,6 +120,11 @@ def check(spec: dict) -> list[str]:
     issues: list[str] = []
     grid = int(spec.get("grid", 24))
     for item in spec.get("strokes", []) + spec.get("fills", []):
+        try:
+            validate_path_d(item["d"])
+        except ValueError as exc:
+            # Malformed geometry is an error, not a warning: it cannot render.
+            raise ValueError(f"{item.get('name', 'stroke')}: {exc}") from exc
         for num in re.findall(r"-?\d+\.?\d*", item["d"]):
             v = float(num)
             if v != int(v):
@@ -115,10 +142,14 @@ def main(argv: list[str]) -> int:
     args = ap.parse_args(argv)
 
     spec = json.loads(Path(args.spec).read_text(encoding="utf-8-sig"))
-    issues = check(spec)
+    try:
+        issues = check(spec)
+        svg = render(spec, args.color)
+    except ValueError as exc:
+        print(f"rejected: {exc}", file=sys.stderr)
+        return 1
     for issue in issues:
         print(f"warn: {issue}")
-    svg = render(spec, args.color)
     out = args.out or str(Path(args.spec).with_suffix(".svg"))
     Path(out).write_text(svg, encoding="utf-8")
     print(f"wrote {out}" + (f" ({len(issues)} warnings)" if issues else ""))

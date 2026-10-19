@@ -146,7 +146,16 @@ def _rasterize_pdf_via_browser(pdf_path: Path, out_png: Path) -> None:
         ], capture_output=True, timeout=120, check=False)
         if raw.exists():
             from PIL import Image
-            Image.open(raw).convert("RGB").save(out_png)
+            img = Image.open(raw).convert("RGB")
+            # Headless Chrome ships no PDF viewer, so the screenshot can come back blank
+            # even though the PDF is fine. Writing that blank PNG would make the proxy
+            # comparison meaningless (a sparse figure "passes", a dense one "fails").
+            # Treat a blank capture as "no proxy" and fall back to the structural check.
+            gray = img.convert("L")
+            pixels = list(gray.getdata())
+            if pixels and sum(1 for v in pixels if v < 240) / len(pixels) < 0.001:
+                return
+            img.save(out_png)
 
 
 def png_is_real(png_path: Path) -> bool:
@@ -215,9 +224,19 @@ def check(ir_path: Path, outdir: Path) -> dict:
     pdf = outdir / "figure.pdf"
     pptx = outdir / "figure.pptx"
 
-    _run("backends.svg", str(ir_path), "-o", str(svg), "--scale", str(scale))
-    _run("backends.png", str(svg), "-o", str(png), "--width", "1200")
-    _run("backends.pdf", str(ir_path), "-o", str(pdf))
+    # Route decides the backend (same rule as tools/regress.py). A statistical figure
+    # has no nodes, so the structure backend emits an empty SVG; it must go through
+    # matplotlib or this checker reports a false failure on a perfectly good figure.
+    statistical = bool(ir.get("data", {}).get("series"))
+    if statistical:
+        _run("backends.mpl2svg", str(ir_path), "-o", str(svg), "--png", str(png))
+        # The mpl SVG is the geometry; embed that same SVG as vector so the PDF cannot
+        # drift from what was verified.
+        _run("backends.pdf", "--from-svg", str(svg), "-o", str(pdf))
+    else:
+        _run("backends.svg", str(ir_path), "-o", str(svg), "--scale", str(scale))
+        _run("backends.png", str(svg), "-o", str(png), "--width", "1200")
+        _run("backends.pdf", str(ir_path), "-o", str(pdf))
     _run("backends.pptx", str(ir_path), "-o", str(pptx))
 
     # PDF proxy for verification: rasterize the PDF with the system browser so the PDF

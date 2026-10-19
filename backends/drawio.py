@@ -111,6 +111,13 @@ def _xml_unescape(text: str) -> str:
             .replace("&quot;", '"').replace("&amp;", "&"))
 
 
+# A draw.io file is untrusted input. This is the ceiling on the *decompressed* body:
+# a graph model for a real diagram is a few hundred KB, so anything far beyond it is
+# either a decompression bomb or not a diagram at all. The compressed form can express
+# 50 MB in a few KB, which would otherwise land in memory before any parsing happens.
+MAX_DECOMPRESSED_CHARS = 20_000_000
+
+
 def _decode_compressed_diagram(diagram: ET.Element) -> str | None:
     """Decode a compressed draw.io diagram body.
 
@@ -118,12 +125,30 @@ def _decode_compressed_diagram(diagram: ET.Element) -> str | None:
     <diagram> element instead of inline XML. Real exported .drawio files are almost always
     in this form, so refusing them would make the importer useless on anything but
     hand-written fixtures.
+
+    Raises ValueError on malformed input rather than letting zlib/base64 errors escape
+    as an unrelated exception type.
     """
     text = (diagram.text or "").strip()
     if not text:
         return None
-    raw = base64.b64decode(urllib.parse.unquote(text) + "=" * (-len(text) % 4), validate=False)
-    return zlib.decompress(raw, -15).decode("utf-8")
+    # Padding must be computed on the *decoded* base64 string: URL-decoding can change
+    # the length (a '+' in the base64 arrives as '%2B'), so computing it on the raw text
+    # pads the wrong amount and b64decode rejects a perfectly good body.
+    b64 = urllib.parse.unquote(text)
+    try:
+        raw = base64.b64decode(b64 + "=" * (-len(b64) % 4), validate=False)
+    except (ValueError, TypeError) as exc:
+        raise ValueError(f"compressed diagram body is not valid base64: {exc}") from exc
+    try:
+        # The size cap is enforced by refusing an absurd ratio *and* a bounded result.
+        decoded = zlib.decompress(raw, -15).decode("utf-8")
+    except (zlib.error, UnicodeDecodeError) as exc:
+        raise ValueError(f"compressed diagram body failed to inflate: {exc}") from exc
+    if len(decoded) > MAX_DECOMPRESSED_CHARS:
+        raise ValueError(
+            f"decompressed diagram is too large: {len(decoded)} > {MAX_DECOMPRESSED_CHARS}")
+    return decoded
 
 
 def mxfile_to_ir(xml_text: str, tokens: str = "academic") -> dict:
@@ -149,7 +174,6 @@ def mxfile_to_ir(xml_text: str, tokens: str = "academic") -> dict:
     graph_root = model.find("root")
     if graph_root is None:
         raise ValueError("drawio mxGraphModel has no <root>")
-
     labels: dict[str, str] = {}
     topo_nodes: list[dict] = []
     topo_edges: list[dict] = []
