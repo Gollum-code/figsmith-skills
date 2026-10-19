@@ -4,43 +4,43 @@
     {
       "id": "arch-diagram",
       "version": "1.0.0",
-      "catalog": "domains\\arch-diagram\\references\\catalog.json",
+      "catalog": "domains/arch-diagram/references/catalog.json",
       "chart_count": 6
     },
     {
       "id": "deck-slides",
       "version": "1.0.0",
-      "catalog": "domains\\deck-slides\\references\\catalog.json",
+      "catalog": "domains/deck-slides/references/catalog.json",
       "chart_count": 9
     },
     {
       "id": "docs-diagram",
       "version": "1.0.0",
-      "catalog": "domains\\docs-diagram\\references\\catalog.json",
+      "catalog": "domains/docs-diagram/references/catalog.json",
       "chart_count": 18
     },
     {
       "id": "icon-logo",
       "version": "1.0.0",
-      "catalog": "domains\\icon-logo\\references\\catalog.json",
+      "catalog": "domains/icon-logo/references/catalog.json",
       "chart_count": 5
     },
     {
       "id": "infographic",
       "version": "1.0.0",
-      "catalog": "domains\\infographic\\references\\catalog.json",
+      "catalog": "domains/infographic/references/catalog.json",
       "chart_count": 8
     },
     {
       "id": "paper-figure",
       "version": "1.0.0",
-      "catalog": "domains\\paper-figure\\references\\catalog.json",
+      "catalog": "domains/paper-figure/references/catalog.json",
       "chart_count": 65
     },
     {
       "id": "poster-flyer",
       "version": "1.0.0",
-      "catalog": "domains\\poster-flyer\\references\\catalog.json",
+      "catalog": "domains/poster-flyer/references/catalog.json",
       "chart_count": 5
     }
   ],

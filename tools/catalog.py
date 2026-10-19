@@ -49,7 +49,7 @@ def load_domain_catalogs() -> list[dict]:
         except json.JSONDecodeError as exc:
             print(f"warn: {path} is not valid JSON: {exc}", file=sys.stderr)
             continue
-        data["_domain_path"] = str(path.relative_to(ROOT))
+        data["_domain_path"] = path.relative_to(ROOT).as_posix()
         catalogs.append(data)
     return catalogs
 
