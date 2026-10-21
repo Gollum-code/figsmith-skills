@@ -96,7 +96,8 @@ def _sandbox_flags():
     saved = os.environ.pop("FIGSMITH_NO_SANDBOX", None)
     try:
         is_root = hasattr(os, "geteuid") and os.geteuid() == 0
-        expected = ["--no-sandbox"] if is_root else []
+        in_ci = os.environ.get("CI", "").strip().lower() in {"1", "true", "yes"}
+        expected = ["--no-sandbox"] if (is_root or in_ci) else []
         assert sandbox_flags() == expected, f"got {sandbox_flags()}, expected {expected}"
 
         os.environ["FIGSMITH_NO_SANDBOX"] = "1"
