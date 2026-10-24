@@ -1,5 +1,10 @@
 {
   "platform": "win32",
   "ink_ratio": 0.1652,
-  "blessed_by": "python 3.12"
+  "blessed_by": "python 3.12",
+  "rect": 1,
+  "line": 0,
+  "path": 29,
+  "text": 16,
+  "text_blob": "baselinelow_dosemid_dosehigh_doserecoveryCondition0.00.10.20.30.40.5Response(a.u.)test=two-sidedWelcht-test,experimentvscontrolwithinconditionalpha=0.05n=32correction=Benjamini-Hochbergacross5conditionsExperimentControl"
 }

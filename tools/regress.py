@@ -51,6 +51,60 @@ def _ink_ratio(png: Path) -> float:
     return sum(1 for v in data if v < 240) / len(data)
 
 
+def _svg_fingerprint(svg: Path) -> dict:
+    """A platform-independent fingerprint of what was drawn.
+
+    Ink coverage alone cannot see a box move 33px, and comparing it across platforms was
+    meaningless anyway (different rasterizers move every glyph), so the old suite skipped
+    the baseline on CI. Primitive counts and the whitespace-free text are both invariant
+    to font metrics and to the rasterizer: wrapping may split a label differently on
+    another host, but the characters drawn and the number of boxes/edges do not move.
+    """
+    import re
+
+    raw = svg.read_text(encoding="utf-8-sig")
+    texts = re.findall(r"<text[^>]*>([^<]*)</text>", raw)
+    return {
+        "rect": len(re.findall(r"<rect\b", raw)),
+        "line": len(re.findall(r"<line\b", raw)),
+        "path": len(re.findall(r"<path\b", raw)),
+        "text": len(texts),
+        "text_blob": re.sub(r"\s+", "", "".join(texts)),
+    }
+
+
+def _compare_baseline(expected: Path, meta: dict, svg: Path, png: Path,
+                      result: dict) -> None:
+    """Gate on the deterministic fingerprint; use ink ratio only same-platform."""
+    current = _svg_fingerprint(svg)
+    for key in ("rect", "line", "path", "text", "text_blob"):
+        want = meta.get(key)
+        if want is None:
+            continue
+        got = current[key]
+        if got != want:
+            result["passed"] = False
+            shown_want = want if key != "text_blob" else str(want)[:60]
+            shown_got = got if key != "text_blob" else str(got)[:60]
+            result["steps"]["blessed"] = f"{key} changed: {shown_want!r} -> {shown_got!r}"
+            return
+
+    recorded = meta.get("platform")
+    if recorded and recorded != sys.platform:
+        result["steps"]["blessed"] = (
+            f"ok (geometry+text; ink skipped: baseline {recorded} != {sys.platform})")
+        return
+
+    a, b = _ink_ratio(expected), _ink_ratio(png)
+    drift = abs(a - b)
+    result["steps"]["blessed_drift"] = round(drift, 4)
+    if drift > 0.02:
+        result["passed"] = False
+        result["steps"]["blessed"] = f"drift {drift:.3f} > 0.02"
+    else:
+        result["steps"]["blessed"] = "ok"
+
+
 def run_case(case_dir: Path, outdir: Path, bless: bool = False) -> dict:
     outdir.mkdir(parents=True, exist_ok=True)
     ir_path = case_dir / "ir.json"
@@ -116,21 +170,22 @@ def run_case(case_dir: Path, outdir: Path, bless: bool = False) -> dict:
 
     # 4. blessed comparison
     #
-    # Pixel comparison is only meaningful between renders from the same environment:
-    # different fonts (matplotlib) and different rasterizers (browser vs Pillow) move
-    # every glyph, which is not a regression. So a baseline records the platform it was
-    # taken on, and a platform mismatch SKIPS the comparison instead of failing on it.
-    # The deterministic checks above still gate on every platform.
+    # Geometry and text are compared everywhere, because they are invariant to the host:
+    # a different font or rasterizer moves glyphs but not the number of boxes, lines and
+    # characters drawn. Ink coverage is only compared on the platform the baseline was
+    # recorded on, where it is a meaningful regression signal.
     expected = case_dir / "expected.png"
     meta_path = case_dir / "meta.json"
     if bless:
         import shutil
 
         shutil.copyfile(png, expected)
+        fp = _svg_fingerprint(svg) if svg.exists() else {}
         meta_path.write_text(json.dumps({
             "platform": sys.platform,
             "ink_ratio": round(_ink_ratio(png), 4),
             "blessed_by": f"python {sys.version_info.major}.{sys.version_info.minor}",
+            **fp,
         }, indent=2), encoding="utf-8")
         result["steps"]["blessed"] = f"recorded ({sys.platform})"
     elif expected.exists():
@@ -140,18 +195,7 @@ def run_case(case_dir: Path, outdir: Path, bless: bool = False) -> dict:
                 meta = json.loads(meta_path.read_text(encoding="utf-8"))
             except json.JSONDecodeError:
                 meta = {}
-        if meta.get("platform") and meta["platform"] != sys.platform:
-            result["steps"]["blessed"] = (
-                f"skipped (baseline {meta['platform']} != {sys.platform})")
-        else:
-            a, b = _ink_ratio(expected), _ink_ratio(png)
-            drift = abs(a - b)
-            result["steps"]["blessed_drift"] = round(drift, 4)
-            if drift > 0.02:
-                result["passed"] = False
-                result["steps"]["blessed"] = f"drift {drift:.3f} > 0.02"
-            else:
-                result["steps"]["blessed"] = "ok"
+        _compare_baseline(expected, meta, svg, png, result)
     else:
         result["steps"]["blessed"] = "no baseline yet (run --blessed)"
 

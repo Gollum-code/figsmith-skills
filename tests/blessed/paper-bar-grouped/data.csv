@@ -1,0 +1,6 @@
+condition,experiment_mean,experiment_sd,control_mean,control_sd,n
+baseline,0.121,0.031,0.118,0.029,32
+low_dose,0.284,0.042,0.131,0.034,32
+mid_dose,0.447,0.051,0.139,0.036,32
+high_dose,0.512,0.048,0.142,0.033,32
+recovery,0.302,0.039,0.135,0.031,32

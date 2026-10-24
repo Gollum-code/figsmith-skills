@@ -169,14 +169,33 @@ def validate(ir: dict, rep: Report) -> None:
         series = data.get("series", [])
         if not series:
             rep.error("data.series must be non-empty when data is present")
+        source = data.get("source")
         for i, s in enumerate(series):
             if "yerr" in s and not s.get("error_kind"):
                 rep.error(f"data.series[{i}] has yerr but no error_kind (must be CI/SD/SE)")
+            columns = s.get("columns")
+            inline = bool(s.get("x")) or bool(s.get("y"))
+            if source and inline and not columns:
+                # IR 2.6: the numbers live in the frozen table, not in the IR. Inlining
+                # them next to a declared source is how the chart drifts from its data
+                # without anything noticing.
+                rep.error(
+                    f"data.series[{i}] inlines x/y while data.source is declared; "
+                    f"declare columns {{x, y[, yerr]}} so the figure reads the frozen table")
+            if columns is not None:
+                if not isinstance(columns, dict) or "x" not in columns or "y" not in columns:
+                    rep.error(f"data.series[{i}].columns must declare at least x and y")
+                elif not source:
+                    rep.error(f"data.series[{i}] declares columns but data.source is unset")
+                continue
             for axis in ("x", "y"):
                 if not isinstance(s.get(axis), list):
                     rep.error(f"data.series[{i}].{axis} must be a list")
             if len(s.get("x", [])) != len(s.get("y", [])):
                 rep.error(f"data.series[{i}]: x and y length mismatch")
+            if "yerr" in s and isinstance(s.get("yerr"), list) \
+                    and len(s["yerr"]) != len(s.get("y", [])):
+                rep.error(f"data.series[{i}]: yerr length mismatch")
         if not data.get("units"):
             rep.warn("data.units missing; axes must declare units or write a.u.")
 

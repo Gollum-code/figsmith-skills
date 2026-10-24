@@ -227,8 +227,7 @@ def mxfile_to_ir(xml_text: str, tokens: str = "academic") -> dict:
             "chart_type": "graph",
             "tokens": tokens,
             "source_file": name,
-            "width_unit": round((max_x + 24) / scale, 1),
-            "height_unit": round((max_y + 24) / scale, 1),
+            "width_unit": round((max_x + 24) / scale, 1)
         },
         "content": {"labels": labels, "legend": [], "footnote": ""},
         "topology": {"nodes": topo_nodes, "edges": topo_edges},

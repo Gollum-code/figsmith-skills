@@ -1,5 +1,10 @@
 {
   "platform": "win32",
-  "ink_ratio": 0.0425,
-  "blessed_by": "python 3.12"
+  "ink_ratio": 0.0172,
+  "blessed_by": "python 3.12",
+  "rect": 10,
+  "line": 10,
+  "path": 10,
+  "text": 13,
+  "text_blob": "ClientAPIGatewayAuthOK?OrderService401ResponseRedisCacheEventBusAsyncWorkerPrimaryDBHTTPSyesnopublish"
 }

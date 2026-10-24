@@ -1,37 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200.00" height="1044.00" viewBox="0 0 1200.00 1044.00">
 <rect x="0" y="0" width="1200.00" height="1044.00" fill="#FFFFFF"/>
 <rect x="36.00" y="36.00" width="240.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
-<text x="156.00" y="93.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Client</text>
+<text x="156.00" y="93.45" font-size="23.81" font-family="Arial, DejaVu Sans, SimHei, Noto Sans CJK SC" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Client</text>
 <rect x="36.00" y="180.00" width="240.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
-<text x="156.00" y="237.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">API Gateway</text>
+<text x="156.00" y="237.45" font-size="23.81" font-family="Arial, DejaVu Sans, SimHei, Noto Sans CJK SC" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">API Gateway</text>
 <rect x="36.00" y="324.00" width="240.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
-<text x="156.00" y="381.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Auth OK?</text>
+<text x="156.00" y="381.45" font-size="23.81" font-family="Arial, DejaVu Sans, SimHei, Noto Sans CJK SC" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Auth OK?</text>
 <rect x="36.00" y="468.00" width="240.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
-<text x="156.00" y="525.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Order Service</text>
+<text x="156.00" y="525.45" font-size="23.81" font-family="Arial, DejaVu Sans, SimHei, Noto Sans CJK SC" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Order Service</text>
 <rect x="300.00" y="468.00" width="240.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
-<text x="420.00" y="525.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">401 Response</text>
+<text x="420.00" y="525.45" font-size="23.81" font-family="Arial, DejaVu Sans, SimHei, Noto Sans CJK SC" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">401 Response</text>
 <rect x="36.00" y="612.00" width="240.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
-<text x="156.00" y="669.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Redis Cache</text>
+<text x="156.00" y="669.45" font-size="23.81" font-family="Arial, DejaVu Sans, SimHei, Noto Sans CJK SC" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Redis Cache</text>
 <rect x="300.00" y="612.00" width="240.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
-<text x="420.00" y="669.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Event Bus</text>
+<text x="420.00" y="669.45" font-size="23.81" font-family="Arial, DejaVu Sans, SimHei, Noto Sans CJK SC" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Event Bus</text>
 <rect x="36.00" y="756.00" width="240.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
-<text x="156.00" y="813.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Async Worker</text>
+<text x="156.00" y="813.45" font-size="23.81" font-family="Arial, DejaVu Sans, SimHei, Noto Sans CJK SC" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Async Worker</text>
 <rect x="36.00" y="900.00" width="240.00" height="108.00" rx="36.00" ry="36.00" fill="#F4F6F8" stroke="#8E959D" stroke-width="1.20"/>
-<text x="156.00" y="957.45" font-size="23.81" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Primary DB</text>
+<text x="156.00" y="957.45" font-size="23.81" font-family="Arial, DejaVu Sans, SimHei, Noto Sans CJK SC" fill="#1A1D21" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="2.86">Primary DB</text>
 <line x1="156.00" y1="144.00" x2="156.00" y2="175.00" stroke="#8E959D" stroke-width="1.20"/>
-<path d="M 156.00 180.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="164.00" y="162.00" font-size="8.00" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">HTTPS</text>
+<path d="M 156.00 180.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="164.00" y="162.00" font-size="19.05" font-family="Times New Roman, DejaVu Serif, SimSun, Noto Serif CJK SC" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">HTTPS</text>
 <line x1="156.00" y1="288.00" x2="156.00" y2="319.00" stroke="#8E959D" stroke-width="1.20"/>
 <path d="M 156.00 324.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/>
 <line x1="156.00" y1="432.00" x2="156.00" y2="463.00" stroke="#8E959D" stroke-width="1.20"/>
-<path d="M 156.00 468.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="164.00" y="450.00" font-size="8.00" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">yes</text>
+<path d="M 156.00 468.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="164.00" y="450.00" font-size="19.05" font-family="Times New Roman, DejaVu Serif, SimSun, Noto Serif CJK SC" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">yes</text>
 <line x1="156.00" y1="432.00" x2="156.00" y2="463.00" stroke="#8E959D" stroke-width="1.20"/>
-<path d="M 156.00 468.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="164.00" y="450.00" font-size="8.00" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">no</text>
+<path d="M 156.00 468.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="164.00" y="450.00" font-size="19.05" font-family="Times New Roman, DejaVu Serif, SimSun, Noto Serif CJK SC" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">no</text>
 <line x1="156.00" y1="576.00" x2="156.00" y2="895.00" stroke="#8E959D" stroke-width="1.20"/>
 <path d="M 156.00 900.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/>
 <line x1="156.00" y1="576.00" x2="156.00" y2="607.00" stroke="#8E959D" stroke-width="1.20"/>
 <path d="M 156.00 612.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/>
 <line x1="156.00" y1="576.00" x2="156.00" y2="607.00" stroke="#8E959D" stroke-width="1.20"/>
-<path d="M 156.00 612.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="164.00" y="594.00" font-size="8.00" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">publish</text>
+<path d="M 156.00 612.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/><text x="164.00" y="594.00" font-size="19.05" font-family="Times New Roman, DejaVu Serif, SimSun, Noto Serif CJK SC" fill="#4B5158" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">publish</text>
 <line x1="420.00" y1="720.00" x2="420.00" y2="751.00" stroke="#8E959D" stroke-width="1.20"/>
 <path d="M 420.00 756.00 l -3.00 -5.00 l 6.00 0 Z" fill="#8E959D"/>
 <line x1="156.00" y1="864.00" x2="156.00" y2="895.00" stroke="#8E959D" stroke-width="1.20"/>

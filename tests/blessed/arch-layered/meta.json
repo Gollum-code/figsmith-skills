@@ -1,5 +1,10 @@
 {
   "platform": "win32",
-  "ink_ratio": 0.0165,
-  "blessed_by": "python 3.12"
+  "ink_ratio": 0.0151,
+  "blessed_by": "python 3.12",
+  "rect": 13,
+  "line": 6,
+  "path": 6,
+  "text": 20,
+  "text_blob": "PresentationtierApplicationtierDatatierWebclientMobileclientAPIgatewayAuthserviceBusinesslogicAsyncworkerCachePrimaryDBMessagequeueHTTPSRPCdispatchpublishSQLread"
 }

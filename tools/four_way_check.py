@@ -48,6 +48,38 @@ def svg_texts(svg_path: Path) -> set[str]:
     return {m.group(1).strip() for m in re.finditer(r"<text[^>]*>([^<]*)</text>", raw) if m.group(1).strip()}
 
 
+def expected_texts(ir: dict) -> set[str]:
+    """Every string the figure is supposed to carry.
+
+    Structural figures keep their text in content.labels; a statistical figure has an
+    empty label map, which made the consistency check vacuous for exactly the route where
+    the data must not drift. Its axis titles, series names and footnote are what has to
+    survive into every artifact, so they are collected here too.
+    """
+    content = ir.get("content", {})
+    texts: set[str] = set()
+    for value in content.get("labels", {}).values():
+        if str(value).strip():
+            texts.add(str(value).strip())
+    for key, value in content.get("axis", {}).items():
+        if str(value).strip():
+            texts.add(str(value).strip())
+    data = ir.get("data") or {}
+    chart = ir.get("meta", {}).get("chart_type", "")
+    # A pie/donut is a composition, so its legend is the categories; the series name is
+    # not drawn and must not be demanded of the SVG.
+    if chart not in ("pie", "donut"):
+        for series in data.get("series", []):
+            if str(series.get("name", "")).strip():
+                texts.add(str(series["name"]).strip())
+    for category in data.get("categories", []):
+        if str(category).strip():
+            texts.add(str(category).strip())
+    # meta.title is document metadata (slide title, filename), not a string drawn into
+    # the figure; content.labels is the layer that owns on-canvas text (IR.md 2.2).
+    return texts
+
+
 def label_coverage(expected: set[str], found: set[str]) -> set[str]:
     """Labels that appear nowhere in `found`.
 
@@ -296,11 +328,23 @@ def check(ir_path: Path, outdir: Path) -> dict:
     pdf_proxy = outdir / "figure.pdf.png"
     _rasterize_pdf_via_browser(pdf, pdf_proxy)
 
-    expected = {v.strip() for v in ir.get("content", {}).get("labels", {}).values() if v.strip()}
+    expected = expected_texts(ir)
+    # A statistical figure's axis ticks, legend and footnote live in the matplotlib SVG;
+    # the PPTX carries the chart as an image plus its axis labels and series names as text.
+    svg_expected = expected
+    if statistical:
+        pptx_expected = {str(v).strip() for v in ir.get("content", {}).get("axis", {}).values()
+                         if str(v).strip()}
+        pptx_expected |= {str(s.get("name")).strip()
+                          for s in ir.get("data", {}).get("series", []) if s.get("name")}
+    else:
+        pptx_expected = expected
+
     got = {
         "svg": svg_texts(svg),
         "pptx": pptx_texts(pptx),
     }
+    expectations = {"svg": svg_expected, "pptx": pptx_expected}
 
     report = {
         "ir": str(ir_path),
@@ -311,7 +355,7 @@ def check(ir_path: Path, outdir: Path) -> dict:
     }
 
     for fmt, texts in got.items():
-        missing = sorted(label_coverage(expected, texts))[:8]
+        missing = sorted(label_coverage(expectations[fmt], texts))[:8]
         ok = not missing
         report["artifacts"][fmt] = {"ok": ok, "detail": f"texts={len(texts)}", "texts": len(texts)}
         report["missing"][fmt] = missing

@@ -29,14 +29,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from backends.png import find_browser, sandbox_flags  # noqa: E402
 
 
+_PAGE_STYLE_RE = re.compile(
+    r'<style>@page\s*\{[^}]*\}\s*html,\s*body\s*\{[^}]*\}</style>\s*',
+    re.S,
+)
+
+
 def _inject_page_css(html: str, width_px: int, height_px: int) -> str:
     """Give @page an exact pixel size.
 
     Without this the PDF takes its size from the print dialog defaults and a 1200px-wide
     page overflows A4 portrait onto a second sheet - which the spike measured.
-    """
-    from PIL import Image  # noqa: F401  (kept for symmetry; no use here)
 
+    Idempotent: the source HTML is also written next to the PDF and re-rendered in place,
+    so a second run used to append another copy of the style block to the same file.
+    """
     # 1 CSS px = 1/96 in, and PDF points are 1/72 in, so 1px = 0.75pt
     w_pt = width_px * 0.75
     h_pt = height_px * 0.75
@@ -44,6 +51,7 @@ def _inject_page_css(html: str, width_px: int, height_px: int) -> str:
         f"<style>@page {{ size: {w_pt:.2f}pt {h_pt:.2f}pt; margin: 0; }}"
         f"html, body {{ margin: 0; padding: 0; width: {width_px}px; }}</style>"
     )
+    html = _PAGE_STYLE_RE.sub("", html)
     if "</head>" in html:
         return html.replace("</head>", style + "</head>", 1)
     return style + html
@@ -93,7 +101,7 @@ def pdf_to_png_proxy(pdf_path: str | Path, out_png: str | Path, width_px: int = 
     out = Path(out_png)
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    src_html = Path(str(pdf_path).replace(".pdf", ".html"))
+    src_html = Path(pdf_path).with_suffix(".html")
     if not src_html.exists():
         raise FileNotFoundError(
             f"{src_html} not found: the proxy screenshots the source HTML next to the PDF; "
@@ -114,21 +122,33 @@ def pdf_to_png_proxy(pdf_path: str | Path, out_png: str | Path, width_px: int = 
         from PIL import Image
 
         img = Image.open(shot).convert("RGB")
-        bbox = img.convert("L").point(lambda v: 0 if v > 250 else 255).getbbox()
-        if bbox:
-            img = img.crop(bbox)
+        if img.height < view_h:
+            # A short capture means the page was clipped, and a clipped proxy would hide
+            # the overflow it exists to catch.
+            raise RuntimeError(
+                f"PDF proxy captured {img.width}x{img.height}, expected height {view_h}; "
+                "the page is taller than the viewport")
+        # Keep the full page, margin included: cropping to the ink bounding box makes the
+        # proxy a different canvas from the PDF it stands in for.
         img.save(out)
     return str(out)
 
 
 def render(html: str, out_pdf: str | Path, width_px: int = 1200, height_px: int = 900,
-           png_proxy: str | Path | None = None) -> dict:
+           png_proxy: str | Path | None = None,
+           source_path: str | Path | None = None) -> dict:
     out = Path(out_pdf)
     out.parent.mkdir(parents=True, exist_ok=True)
     # Keep the source HTML next to the PDF: the proxy screenshots it, and it is the
     # editable source for the deliverable (METHOD 8: source and artifact stay separate).
+    # Only write when it is a *different* file from the input: rewriting the caller's own
+    # source with generated @page CSS turned a read-only render into a source mutation
+    # and appended a duplicate style block on every run.
     src_html = out.with_suffix(".html")
-    src_html.write_text(_inject_page_css(html, width_px, height_px), encoding="utf-8")
+    if source_path is None or Path(source_path).resolve() != src_html.resolve():
+        src_html.write_text(_inject_page_css(html, width_px, height_px), encoding="utf-8")
+    elif not src_html.exists():
+        src_html.write_text(_inject_page_css(html, width_px, height_px), encoding="utf-8")
 
     pdf = html_to_pdf(html, out, width_px, height_px)
     result = {"pdf": pdf, "html": str(src_html), "png": None}
@@ -151,7 +171,7 @@ def main(argv: list[str]) -> int:
     png = args.png or str(src.with_suffix(".png"))
 
     html = src.read_text(encoding="utf-8-sig")
-    result = render(html, out, int(w), int(h), png)
+    result = render(html, out, int(w), int(h), png, source_path=src)
     print(f"wrote {result['pdf']}" + (f" and {result['png']}" if result["png"] else ""))
     return 0
 

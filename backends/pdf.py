@@ -42,33 +42,136 @@ def _hex_to_rgb(hex_color: str) -> tuple[float, float, float]:
     return r, g, b
 
 
-def _find_font(family: str, bold: bool = False):
-    """Resolve a font name to a reportlab-registered TTF, falling back to Helvetica."""
+_FONT_FILES = {
+    "Arial": ["C:/Windows/Fonts/arial.ttf", "C:/Windows/Fonts/arialbd.ttf",
+              "/System/Library/Fonts/Supplemental/Arial.ttf",
+              "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"],
+    "Arial Bold": ["C:/Windows/Fonts/arialbd.ttf", "C:/Windows/Fonts/arial.ttf",
+                   "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+                   "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"],
+    "Times New Roman": ["C:/Windows/Fonts/times.ttf", "C:/Windows/Fonts/timesbd.ttf",
+                        "/System/Library/Fonts/Times.ttc",
+                        "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf"],
+    "SimHei": ["C:/Windows/Fonts/simhei.ttf",
+               "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"],
+    "SimSun": ["C:/Windows/Fonts/simsun.ttc",
+               "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"],
+    "Microsoft YaHei": ["C:/Windows/Fonts/msyh.ttc",
+                        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"],
+    "DejaVu Sans": ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                    "C:/Windows/Fonts/DejaVuSans.ttf"],
+    "DejaVu Serif": ["/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"],
+    "DejaVu Sans Mono": ["/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"],
+    "Noto Sans CJK SC": ["/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+                         "C:/Windows/Fonts/msyh.ttc"],
+    "Noto Serif CJK SC": ["/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc",
+                          "C:/Windows/Fonts/simsun.ttc"],
+}
+# A CJK-capable file used when the requested family has no CJK coverage. Without it a
+# Chinese label renders as blank space in the PDF while every other artifact shows it.
+_CJK_FALLBACKS = [
+    "C:/Windows/Fonts/msyh.ttc",
+    "C:/Windows/Fonts/simhei.ttf",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/System/Library/Fonts/Supplemental/PingFang.ttc",
+]
+
+_CJK_FONT_NAME: str | None = None
+_CJK_RESOLVED = False
+
+
+def _has_cjk(path: str) -> bool:
+    """True when the font carries CJK codepoints (or when that cannot be determined)."""
+    try:
+        from fontTools.ttLib import TTFont
+
+        font = TTFont(path, fontNumber=0, lazy=True)
+        return any(0x4E00 <= cp <= 0x9FFF for cp in font.getBestCmap())
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _register_cjk_font() -> str | None:
+    """Register the first CJK-capable font on this host, once per process."""
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
-    candidates = {
-        "Arial": ["C:/Windows/Fonts/arial.ttf", "C:/Windows/Fonts/arialbd.ttf",
-                  "/System/Library/Fonts/Supplemental/Arial.ttf",
-                  "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"],
-        "Times New Roman": ["C:/Windows/Fonts/times.ttf", "/System/Library/Fonts/Times.ttc",
-                            "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf"],
-        "SimHei": ["C:/Windows/Fonts/simhei.ttf", "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"],
-        "SimSun": ["C:/Windows/Fonts/simsun.ttc", "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"],
-        "Microsoft YaHei": ["C:/Windows/Fonts/msyh.ttc", "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"],
-    }
-    paths = candidates.get(family, candidates["Arial"])
-    if bold and len(paths) > 1 and "bd" in paths[1]:
-        paths = [paths[1]] + paths
-    for path in paths:
-        if Path(path).exists():
-            name = Path(path).stem.replace(" ", "")
+    for path in _CJK_FALLBACKS:
+        if not Path(path).exists():
+            continue
+        try:
+            pdfmetrics.registerFont(TTFont("FigSmithCJK", path))
+            return "FigSmithCJK"
+        except Exception:  # noqa: BLE001
+            continue
+    return None
+
+
+def _cjk_font() -> str | None:
+    global _CJK_FONT_NAME, _CJK_RESOLVED  # noqa: PLW0603
+    if not _CJK_RESOLVED:
+        _CJK_FONT_NAME = _register_cjk_font()
+        _CJK_RESOLVED = True
+    return _CJK_FONT_NAME
+
+
+def _find_font(family: str, bold: bool = False):
+    """Resolve an SVG font-family list to a reportlab-registered TTF.
+
+    The stack is walked in order (the SVG writer emits latin + CJK in one attribute).
+    A latin font is returned even when it has no CJK coverage: `_draw_string` falls back
+    to the CJK companion per glyph, so Chinese labels survive instead of vanishing.
+    """
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    names = [n.strip().strip('"').strip("'") for n in (family or "").split(",") if n.strip()]
+    if bold:
+        names = [f"{n} Bold" for n in names] + names
+
+    for name in names:
+        for path in _FONT_FILES.get(name, []):
+            if not Path(path).exists():
+                continue
+            stem = Path(path).stem.replace(" ", "")
             try:
-                pdfmetrics.registerFont(TTFont(name, path))
-                return name
+                if stem not in pdfmetrics.getRegisteredFontNames():
+                    pdfmetrics.registerFont(TTFont(stem, path))
             except Exception:  # noqa: BLE001
                 continue
+            return stem
     return "Helvetica-Bold" if bold else "Helvetica"
+
+
+def _draw_string(c, x: float, y: float, text: str, size: float, font: str) -> None:
+    """Draw a string, switching to the CJK companion for CJK glyphs.
+
+    The latin font in the SVG writer's stack has no CJK coverage, so drawing a Chinese
+    label in one font drops every glyph. Splitting the runs costs nothing for pure latin
+    text and keeps the mixed labels a paper figure is full of.
+    """
+    cjk = _cjk_font()
+    if not cjk:
+        c.setFont(font, size)
+        c.drawString(x, y, text)
+        return
+
+    from reportlab.pdfbase import pdfmetrics
+
+    runs: list[tuple[str, str]] = []
+    for ch in text:
+        is_cjk_ch = 0x4E00 <= ord(ch) <= 0x9FFF or 0x3000 <= ord(ch) <= 0x303F
+        want = cjk if is_cjk_ch else font
+        if runs and runs[-1][1] == want:
+            runs[-1] = (runs[-1][0] + ch, want)
+        else:
+            runs.append((ch, want))
+
+    cursor = x
+    for chunk, chunk_font in runs:
+        c.setFont(chunk_font, size)
+        c.drawString(cursor, y, chunk)
+        cursor += pdfmetrics.stringWidth(chunk, chunk_font, size)
 
 
 def render_from_svg(svg_path: str | Path, out_pdf: str | Path) -> str:
@@ -81,10 +184,24 @@ def render_from_svg(svg_path: str | Path, out_pdf: str | Path) -> str:
     from reportlab.pdfgen import canvas as pdf_canvas
 
     svg_text = Path(svg_path).read_text(encoding="utf-8-sig")
-    m = re.search(r'width="([\d.]+)"\s+height="([\d.]+)"', svg_text)
-    if not m:
-        raise ValueError("SVG has no explicit width/height; cannot size the PDF page")
-    width_pt, height_pt = float(m.group(1)), float(m.group(2))
+    from backends.svg import parse_svg_size
+
+    w_u, h_u, unit = parse_svg_size(svg_text)
+    # Point-preserving rule: a unitless/"px" SVG declares no physical size, so one user
+    # unit is treated as one PDF point exactly as before (existing deliverables do not
+    # move). A declared physical unit (pt/mm/cm/in - what matplotlib emits) is honoured,
+    # and the drawing is scaled into that page. Reading the first width/height pair in
+    # the whole document used to grab a rectangle instead of the root, so the page size
+    # depended on element order.
+    to_pt = {"pt": 1.0, "px": 1.0, "mm": 72.0 / 25.4, "cm": 72.0 / 2.54, "in": 72.0}[unit]
+    width_pt, height_pt = w_u * to_pt, h_u * to_pt
+
+    c = pdf_canvas.Canvas(str(out_pdf), pagesize=(width_pt, height_pt))
+    if to_pt != 1.0:
+        c.scale(to_pt, to_pt)
+    c.setLineJoin(1)
+    # Flip using the user-space height: after c.scale the coordinate system is user units.
+    height_pt = h_u
 
     c = pdf_canvas.Canvas(str(out_pdf), pagesize=(width_pt, height_pt))
     c.setLineJoin(1)
@@ -148,14 +265,16 @@ def render_from_svg(svg_path: str | Path, out_pdf: str | Path) -> str:
         family = a.get("font-family", "Arial")
         bold = a.get("font-weight") == "600" or a.get("font-weight") == "bold"
         font = _find_font(family, bold)
-        c.setFont(font, size)
         c.setFillColor(rgb(a.get("fill", "#000000")))
-        text_w = c.stringWidth(body, font, size)
+        # The SVG writer now always emits a font-family stack; a missing one still has
+        # to draw, so it falls through to the Arial entry.
+        from reportlab.pdfbase import pdfmetrics
+        text_w = pdfmetrics.stringWidth(body, font, size)
         if anchor == "middle":
             x -= text_w / 2
         elif anchor == "end":
             x -= text_w
-        c.drawString(x, height_pt - y, body)
+        _draw_string(c, x, height_pt - y, body, size, font)
 
     c.showPage()
     c.save()

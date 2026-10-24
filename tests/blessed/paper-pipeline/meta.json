@@ -1,5 +1,10 @@
 {
   "platform": "win32",
-  "ink_ratio": 0.0747,
-  "blessed_by": "python 3.12"
+  "ink_ratio": 0.0481,
+  "blessed_by": "python 3.12",
+  "rect": 6,
+  "line": 4,
+  "path": 4,
+  "text": 10,
+  "text_blob": "RawsignalDenoisingFeatureextractionClassifierResponseacquisitionfilteringselectiondecision"
 }

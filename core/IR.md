@@ -33,9 +33,8 @@ IR
     "domain": "arch-diagram",      // 域包名
     "chart_type": "layered",       // 本域图型 ID（见 references/catalog.json）
     "tokens": "academic",          // token 集名
-    "title": "系统分层架构",        // 可省略
-    "width_unit": 100,             // 无量纲坐标系宽度
-    "height_unit": 100
+    "title": "系统分层架构",        // 可省略；文档元数据（PPTX 标题/文件名），不画进图里
+    "width_unit": 100              // 无量纲坐标系宽度（画布高度由 layout 反推）
   },
   "content": { ... },              // §2.2
   "topology": { ... },             // §2.3
@@ -135,10 +134,11 @@ IR
 
 ```jsonc
 "data": {
-  "source": "data/trials.csv",       // 冻结数据表路径
+  "source": "data/trials.csv",       // 冻结数据表路径（相对本 IR 文件解析）
+  "categories": ["baseline", "low", "high"],   // 可选：分类轴标签
   "series": [
-    { "name": "实验组", "x": [1, 2, 3, 4], "y": [0.12, 0.31, 0.44, 0.52],
-      "yerr": [0.03, 0.04, 0.05, 0.04], "error_kind": "SD" }
+    { "name": "实验组", "columns": {"x": "condition", "y": "mean", "yerr": "sd"},
+      "error_kind": "SD" }
   ],
   "units": { "x": "s", "y": "a.u." },
   "statistics": { "test": "two-sided t-test", "alpha": 0.05, "n": 240 }
@@ -146,19 +146,25 @@ IR
 ```
 
 规则：
-- 数据必须来自冻结表（CSV/JSON），**不手写在 IR 里**。
-- `error_kind` 必须显式声明 CI / SD / SE，不许省略。
+- 数据必须来自冻结表（CSV/JSON）。`series[].columns` 指定列名，渲染时由
+  `backends/mpl2svg.resolve_series()` 读表取数；**不手写在 IR 里**。
+  校验器拒绝「声明了 `source` 却内联 `x/y`」的 IR —— 那样图表会悄悄偏离数据。
+- `columns` 至少声明 `x` 与 `y`；有误差棒时 `yerr` 必填，`error_kind` 必须显式声明
+  CI / SD / SE，不许省略。
+- `x` 列是分类名时按位置取数，标签自动成为刻度文字。
 - 统计检验的方法、α、样本量必须记录。没有这些信息的图不许进论文。
 
 ---
 
 ## 3. 校验
 
-`python -m core.ir.validate <file.json>` 检查：
+`python -m core.ir <file.json>` 检查：
 - 必需字段齐全
 - `topology.nodes` 的 id 在 `content.labels` 或 `layout.nodes` 有对应
 - `style` 里的 token 路径可解析
-- `data.series[].error_kind` 已声明
+- `data.series[].error_kind` 已声明；`data.series[].x/y` 等长
+- 声明了 `data.source` 的 series 必须用 `columns` 读表，不许内联数据
+- `layout.nodes` 的 id 全部存在于 `topology.nodes`
 
 ---
 
@@ -168,7 +174,7 @@ IR
 {
   "schema": "figsmith.ir/1.0",
   "meta": { "domain": "arch-diagram", "chart_type": "layered",
-            "tokens": "academic", "width_unit": 100, "height_unit": 80 },
+            "tokens": "academic", "width_unit": 100 },
   "content": { "labels": { "n1": "输入层", "n2": "处理层", "n3": "输出层" } },
   "topology": {
     "nodes": [ {"id": "n1", "kind": "box"}, {"id": "n2", "kind": "box"}, {"id": "n3", "kind": "box"} ],
@@ -177,7 +183,7 @@ IR
   },
   "layout": {
     "canvas": { "w": 100, "h": 80, "margin": 4 },
-    "grid": { "columns": 3, "gap_x": 3.0, "box_w": 24, "box_h": 12 },
+    "grid": { "columns": 3, "gap_x": 3.0, "gap_y": 4.0, "box_w": 24, "box_h": 12 },
     "nodes": { "n1": {"col": 0, "row": 0}, "n2": {"col": 1, "row": 0}, "n3": {"col": 2, "row": 0} }
   },
   "style": {
@@ -188,4 +194,8 @@ IR
     "emphasis": []
   }
 }
+```
+
+画布高度不写进 IR：`width_unit` 与 grid 决定宽度，高度由 layout 反算后加上对称边距
+（METHOD §2.3）。所以 `meta.height_unit` 不存在，写了也不被读取。
 ```

@@ -49,7 +49,7 @@ FigSmith 是一个**纯文件技能树**。没有编译，没有注册表，没�
 
 - Python 3.10+
 - 依赖见 `requirements.txt`（已锁版本）：`pip install -r requirements.txt`
-  —— numpy、matplotlib、Pillow、reportlab、python-pptx、fontTools、lxml、scipy
+  —— numpy、matplotlib、Pillow、reportlab、python-pptx、fontTools
 
 按需：
 
@@ -69,14 +69,16 @@ FigSmith 是一个**纯文件技能树**。没有编译，没有注册表，没�
 ## 4. 验证安装
 
 ```bash
+cd <target>/figsmith
 python -m core.ir examples/arch-diagram/layered-arch/arch.ir.json   # IR 合法
-python -m core.verify.check_contrast <某张.png>                     # 对比度自检
+python -m core.verify.check_contrast examples/arch-diagram/layered-arch/arch.png
 python -m backends.svg examples/arch-diagram/layered-arch/arch.ir.json -o /tmp/t.svg
 python -m core.tokens.loader --check                               # 令牌一致性
 python tools/regress.py                                            # 回归套件
+python tests/test_verify.py                                        # 验收奕约单测
 ```
 
-五条都通 = 装好了。
+全部通 = 装好了。`tools/` 与 `tests/` 已随树安装，上面的命令在安装目录里就能跑。
 
 ---
 

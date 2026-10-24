@@ -5,8 +5,7 @@
     "chart_type": "bar_grouped",
     "tokens": "academic",
     "title": "Figure 2. Dose-response comparison",
-    "width_unit": 100,
-    "height_unit": 62
+    "width_unit": 100
   },
   "content": {
     "labels": {},
@@ -55,7 +54,7 @@
     "emphasis": []
   },
   "data": {
-    "source": "examples\\paper-figure\\grouped-bar\\data\\dose_response.csv",
+    "source": "data.csv",
     "categories": [
       "baseline",
       "low_dose",
@@ -66,54 +65,22 @@
     "series": [
       {
         "name": "Experiment",
-        "x": [
-          0,
-          1,
-          2,
-          3,
-          4
-        ],
-        "y": [
-          0.121,
-          0.284,
-          0.447,
-          0.512,
-          0.302
-        ],
-        "yerr": [
-          0.031,
-          0.042,
-          0.051,
-          0.048,
-          0.039
-        ],
+        "columns": {
+          "x": "condition",
+          "y": "experiment_mean",
+          "yerr": "experiment_sd"
+        },
         "error_kind": "SD",
         "kind": "bar_grouped",
         "width": 0.36
       },
       {
         "name": "Control",
-        "x": [
-          0,
-          1,
-          2,
-          3,
-          4
-        ],
-        "y": [
-          0.118,
-          0.131,
-          0.139,
-          0.142,
-          0.135
-        ],
-        "yerr": [
-          0.029,
-          0.034,
-          0.036,
-          0.033,
-          0.031
-        ],
+        "columns": {
+          "x": "condition",
+          "y": "control_mean",
+          "yerr": "control_sd"
+        },
         "error_kind": "SD",
         "kind": "bar_grouped",
         "width": 0.36

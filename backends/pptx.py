@@ -30,8 +30,103 @@ def _rgb(hex_color: str):
     return RGBColor.from_string(hex_color.lstrip("#").upper())
 
 
+def _render_statistical(ir: dict, out_path: str | Path, slide_w_in: float,
+                        slide_h_in: float, base_dir: Path | None = None) -> str:
+    """A statistical IR has no topology, so the structure path would ship a blank slide.
+
+    The chart is rendered by matplotlib (the only sanctioned route for data) and placed
+    as the slide's figure, with the title and axis labels as real, editable text. That
+    keeps the four-way promise honest: the PPTX carries the same content as the SVG.
+    """
+    import tempfile
+
+    from pptx import Presentation
+    from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+    from pptx.util import Inches, Pt
+
+    from backends.mpl2svg import render as render_mpl
+
+    tokens = load_tokens(ir.get("meta", {}).get("tokens", "academic"))
+    title = ir.get("meta", {}).get("title") or ir.get("content", {}).get("title") or ""
+    axis = ir.get("content", {}).get("axis", {})
+    legend = [s.get("name") for s in ir.get("data", {}).get("series", []) if s.get("name")]
+
+    prs = Presentation()
+    prs.slide_width = Inches(slide_w_in)
+    prs.slide_height = Inches(slide_h_in)
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+
+    margin_in = 0.5
+    top = margin_in
+    if title:
+        box = slide.shapes.add_textbox(Inches(margin_in), Inches(margin_in),
+                                       Inches(slide_w_in - 2 * margin_in), Inches(0.7))
+        tf = box.text_frame
+        tf.word_wrap = True
+        tf.margin_left = tf.margin_right = 0
+        p = tf.paragraphs[0]
+        p.alignment = PP_ALIGN.LEFT
+        run = p.add_run()
+        run.text = str(title)
+        run.font.name = tokens.font("figure_title", "latin")
+        run.font.size = Pt(20)
+        run.font.bold = True
+        run.font.color.rgb = _rgb(tokens.c("colors.ink"))
+        top += 0.9
+
+    with tempfile.TemporaryDirectory() as tmp:
+        chart_png = Path(tmp) / "chart.png"
+        # base_dir: resolve data.source relative to the IR document, not the cwd.
+        render_mpl(ir, out_png=str(chart_png), dpi=300, base_dir=base_dir)
+        from PIL import Image
+
+        w_px, h_px = Image.open(chart_png).size
+        avail_w = slide_w_in - 2 * margin_in
+        avail_h = slide_h_in - top - margin_in
+        fit = min(avail_w / w_px, avail_h / h_px)
+        pic_w = w_px * fit
+        pic_h = h_px * fit
+        left = (slide_w_in - pic_w) / 2
+        slide.shapes.add_picture(str(chart_png), Inches(left), Inches(top),
+                                 Inches(pic_w), Inches(pic_h))
+
+    # Axis labels and series names are stated as text so the slide still reads correctly
+    # when the image is missing, and so a text-level content check can see them. Each
+    # item is its own run, so a checker sees the label itself rather than "x: label".
+    captions = [str(v) for _, v in axis.items() if str(v).strip()]
+    captions += [str(s.get("name")) for s in ir.get("data", {}).get("series", [])
+                 if s.get("name")]
+    if captions:
+        cap = slide.shapes.add_textbox(Inches(margin_in), Inches(slide_h_in - margin_in - 0.5),
+                                       Inches(slide_w_in - 2 * margin_in), Inches(0.5))
+        tf = cap.text_frame
+        tf.word_wrap = True
+        tf.margin_left = tf.margin_right = 0
+        tf.vertical_anchor = MSO_ANCHOR.BOTTOM
+        p = tf.paragraphs[0]
+        p.alignment = PP_ALIGN.LEFT
+        for i, caption in enumerate(captions):
+            if i:
+                sep = p.add_run()
+                sep.text = "  |  "
+                sep.font.name = tokens.font("annotation", "latin")
+                sep.font.size = Pt(tokens.font_size("annotation"))
+                sep.font.color.rgb = _rgb(tokens.c("colors.ink_tertiary"))
+            run = p.add_run()
+            run.text = caption
+            run.font.name = tokens.font("annotation", "latin")
+            run.font.size = Pt(tokens.font_size("annotation"))
+            run.font.color.rgb = _rgb(tokens.c("colors.ink_secondary"))
+
+    prs.save(str(out_path))
+    return str(out_path)
+
+
 def render(ir: dict, out_path: str | Path, slide_w_in: float = 13.333,
-           slide_h_in: float = 7.5) -> str:
+           slide_h_in: float = 7.5, base_dir: Path | None = None) -> str:
+    if ir.get("data", {}).get("series"):
+        return _render_statistical(ir, out_path, slide_w_in, slide_h_in, base_dir)
+
     from pptx import Presentation
     from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
     from pptx.util import Emu, Inches, Pt
@@ -166,9 +261,12 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--slide-h", type=float, default=7.5)
     args = ap.parse_args(argv)
 
-    ir = json.loads(Path(args.ir).read_text(encoding="utf-8-sig"))
-    out = args.out or str(Path(args.ir).with_suffix(".pptx"))
-    path = render(ir, out, args.slide_w, args.slide_h)
+    ir_path = Path(args.ir)
+    ir = json.loads(ir_path.read_text(encoding="utf-8-sig"))
+    out = args.out or str(ir_path.with_suffix(".pptx"))
+    # data.source is resolved relative to the IR so a statistical slide is reproducible.
+    path = render(ir, out, args.slide_w, args.slide_h,
+                  base_dir=ir_path.resolve().parent)
     print(f"wrote {path}")
     return 0
 

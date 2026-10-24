@@ -128,7 +128,10 @@
         "标题页",
         "封面",
         "title",
-        "cover"
+        "cover",
+        "幻灯片",
+        "slide",
+        "演示"
       ],
       "domain": "deck-slides"
     },
@@ -1477,7 +1480,8 @@
         "学术海报",
         "poster",
         "三栏",
-        "conference"
+        "conference",
+        "海报"
       ],
       "domain": "poster-flyer"
     },
@@ -1490,7 +1494,8 @@
         "传单",
         "活动",
         "flyer",
-        "宣传"
+        "宣传",
+        "海报"
       ],
       "domain": "poster-flyer"
     },

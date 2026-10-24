@@ -31,7 +31,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from core.tokens import load as load_tokens  # noqa: E402
-from backends.svg import resolve_layout  # noqa: E402
+from backends.svg import _label_lines, resolve_layout  # noqa: E402
 
 EDGE_CLEARANCE_PX = 10.0
 CJK_RANGES = (
@@ -59,25 +59,14 @@ def text_width_px(text: str, size_px: float, tokens=None) -> float:
 
 
 def _wrap_lines(text: str, size_px: float, box_w: float, tokens) -> list[str]:
-    """Mirror the renderer's wrapping so the check measures what will ship."""
-    limit = max(box_w - 2 * EDGE_CLEARANCE_PX, size_px)
-    segments = [s.strip() for s in text.split("\n") if s.strip()] if "\n" in text else [text.strip()]
-    lines: list[str] = []
-    for segment in segments:
-        if tokens.text_width(segment, size_px) <= limit:
-            lines.append(segment)
-            continue
-        cur = ""
-        for word in segment.split(" "):
-            candidate = f"{cur} {word}".strip()
-            if tokens.text_width(candidate, size_px) <= limit or not cur:
-                cur = candidate
-            else:
-                lines.append(cur)
-                cur = word
-        if cur:
-            lines.append(cur)
-    return lines or [text]
+    """Delegate to the renderer's wrapper so the check measures what will ship.
+
+    Reimplementing the wrap produced a checker that failed figures the renderer drew
+    correctly: the renderer breaks an over-long single word mid-word, this copy did not,
+    so the widest line it measured never existed in the output. One implementation,
+    used by both sides, is the only way they cannot disagree.
+    """
+    return _label_lines(text, size_px, box_w, tokens)
 
 
 def _bbox(node) -> tuple[float, float, float, float]:

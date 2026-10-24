@@ -68,7 +68,7 @@ def measure(gray: np.ndarray) -> dict:
     rows_with_ink = np.flatnonzero(row_ink > 0.001)
     cols_with_ink = np.flatnonzero(col_ink > 0.001)
     if len(rows_with_ink) == 0 or len(cols_with_ink) == 0:
-        return {"size": [h, w], "empty": True}
+        return {"size": [w, h], "empty": True}
     top, bottom = int(rows_with_ink[0]), int(rows_with_ink[-1])
     left, right = int(cols_with_ink[0]), int(cols_with_ink[-1])
     margin = [left, top, w - 1 - right, h - 1 - bottom]
@@ -144,8 +144,7 @@ def suggest_ir(report: dict, tokens_name: str = "academic") -> dict:
             "domain": "unknown",
             "chart_type": "unknown",
             "tokens": tokens_name,
-            "width_unit": round(report["size"][0] / unit, 1),
-            "height_unit": round(report["size"][1] / unit, 1),
+            "width_unit": round(report["size"][0] / unit, 1)
         },
         "content": {"labels": {}},
         "topology": {"nodes": [], "edges": []},

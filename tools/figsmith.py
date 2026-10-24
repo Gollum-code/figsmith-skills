@@ -73,7 +73,7 @@ def _scaffold_structure(chart_type: str, domain: str, tokens: str) -> dict:
         "schema": "figsmith.ir/1.0",
         "meta": {
             "domain": domain, "chart_type": chart_type, "tokens": tokens,
-            "title": "TODO figure title", "width_unit": 100, "height_unit": 40,
+            "title": "TODO figure title", "width_unit": 100,
         },
         "content": {"labels": labels, "legend": [], "footnote": "TODO footnote."},
         "topology": {"nodes": nodes, "edges": edges},
@@ -92,15 +92,26 @@ def _scaffold_structure(chart_type: str, domain: str, tokens: str) -> dict:
     }
 
 
+def _supported_chart_types() -> set[str]:
+    from backends.mpl2svg import SUPPORTED
+
+    return set(SUPPORTED)
+
+
 def _scaffold_statistical(chart_type: str, domain: str, tokens: str,
-                          csv_path: Path) -> dict:
+                           csv_path: Path, rows: int = 3) -> dict:
     """A series skeleton pointing at a CSV the user fills. No numbers are invented:
-    `y` is empty until real data lands, which is what keeps this honest."""
+    `y` is empty until real data lands, which is what keeps this honest.
+
+    `x` is empty too. An `x` with placeholders and an empty `y` fails the IR validator
+    (length mismatch), which meant the honest "fill in your data" state was itself an
+    invalid IR. Both arrays start empty and the validator treats that as a scaffold.
+    """
     return {
         "schema": "figsmith.ir/1.0",
         "meta": {
             "domain": domain, "chart_type": chart_type, "tokens": tokens,
-            "title": "TODO figure title", "width_unit": 100, "height_unit": 62,
+            "title": "TODO figure title", "width_unit": 100,
         },
         "content": {"labels": {}, "axis": {"x": "TODO x", "y": "TODO y"},
                     "legend": ["Series A"], "footnote": "TODO footnote."},
@@ -119,12 +130,13 @@ def _scaffold_statistical(chart_type: str, domain: str, tokens: str,
         },
         "data": {
             "source": str(csv_path),
-            "categories": ["c1", "c2", "c3"],
+            "categories": [],
             "series": [{"name": "Series A", "kind": chart_type,
-                        "x": [0, 1, 2], "y": []}],
+                        "x": [], "y": []}],
             "units": {"x": "TODO", "y": "TODO"},
         },
     }
+
 
 
 def _scaffold_html(chart_type: str, domain: str) -> str:
@@ -176,12 +188,25 @@ def cmd_scaffold(args: argparse.Namespace) -> int:
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
 
+    if route == "statistical" and chart_type not in _supported_chart_types():
+        # Failing loudly beats handing over a scaffold that dies at render time: the
+        # catalog lists chart types the statistical backend has not implemented yet.
+        from backends.mpl2svg import SUPPORTED
+
+        print(f"blocked: chart_type {chart_type!r} ({domain}) is listed as statistical but "
+              f"mpl2svg does not implement it.")
+        print(f"  implemented: {', '.join(sorted(SUPPORTED))}")
+        print("  render it by hand through matplotlib, or pick an implemented type.")
+        return 2
+
     if route == "html":
         target = out.with_suffix(".html")
         target.write_text(_scaffold_html(chart_type, domain), encoding="utf-8")
     elif route == "statistical":
         csv_path = out.with_name(out.name + "-data.csv")
-        csv_path.write_text("category,Series A,c1,c2,c3\n", encoding="utf-8")
+        csv_path.write_text(
+            "category,Series A\n" + "\n".join(f"c{i + 1}," for i in range(3)) + "\n",
+            encoding="utf-8")
         target = out.with_suffix(".ir.json")
         target.write_text(
             json.dumps(_scaffold_statistical(chart_type, domain, STRUCTURE_TOKENS, csv_path),
@@ -194,7 +219,9 @@ def cmd_scaffold(args: argparse.Namespace) -> int:
 
     print(f"scaffolded {domain}/{chart_type} (route={route}) -> {target}")
     if route == "statistical":
-        print(f"  fill in real data at {target.with_name(target.name)} .data.source, then render")
+        # Point at the CSV, not at the IR: the IR already references it, and the CSV is
+        # the file that has to be filled in.
+        print(f"  fill in real data at {csv_path}, then render")
     return 0
 
 
@@ -214,8 +241,23 @@ def cmd_render(args: argparse.Namespace) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
 
     if src.suffix == ".html":
-        code, log = _run("backends.html2pdf", str(src), "-o", str(out.with_suffix(".pdf")),
-                         "--png", str(out.with_suffix(".png")), "--size", args.size)
+        from backends.html2pdf import render as html_to_pdf_render
+
+        size_w, _, size_h = args.size.partition("x")
+        try:
+            result = html_to_pdf_render(
+                src.read_text(encoding="utf-8"),
+                out.with_suffix(".pdf"),
+                int(size_w) if size_w.isdigit() else 1280,
+                int(size_h) if size_h.isdigit() else 720,
+                out.with_suffix(".png"),
+                source_path=src,
+            )
+            print(f"wrote {result['pdf']} and {result['png']}")
+            return 0
+        except RuntimeError as exc:
+            print(f"html route failed: {exc}")
+            return 1
     else:
         route = _detect_route(src)
         if route == "statistical":
@@ -231,24 +273,48 @@ def cmd_render(args: argparse.Namespace) -> int:
     return code
 
 
+def _png_for(src: Path) -> Path:
+    """The PNG that `render` writes for this source.
+
+    `render` strips the source suffix and writes `<stem>.png`, but `.ir.json` has two
+    suffixes, so `src.with_suffix(".png")` produced `arch.ir.png` and the verify step
+    silently found nothing - skipping the contrast and tiling checks while still
+    printing PASS. The renderer is the single source of truth for the artifact name.
+    """
+    name = src.name
+    for suffix in (".ir.json", ".json", ".html", ".svg"):
+        if name.endswith(suffix):
+            return src.with_name(name[: -len(suffix)] + ".png")
+    return src.with_suffix(".png")
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     src = Path(args.source)
     failures = 0
-    if src.suffix == ".json" or src.name.endswith(".ir.json"):
+    if src.name.endswith(".ir.json") or src.suffix == ".json":
         rc, log = _run("core.ir", str(src))
         print(f"  ir           {'ok' if rc == 0 else 'FAIL'}")
         failures += rc != 0
         rc, _ = _run("core.verify.check_overflow", str(src))
         print(f"  overflow     {'ok' if rc == 0 else 'FAIL'}")
         failures += rc != 0
-    png = src.with_suffix(".png")
+
+    png = _png_for(src)
     if png.exists():
         for mod, label in (("core.verify.check_contrast", "contrast"),
                            ("core.verify.check_tiling", "tiling")):
             rc, _ = _run(mod, str(png))
             print(f"  {label:<12} {'ok' if rc == 0 else 'FAIL'}")
             failures += rc != 0
-    print("PASS" if failures == 0 else f"{failures} check(s) failed")
+    else:
+        # A missing artifact is a failure, not a skip: reporting PASS while two of the
+        # three checks never ran is exactly the "fabricated PASS" the project forbids.
+        print(f"  raster       MISSING ({png.name}); run `render` first")
+        failures += 1
+
+    # Visual acceptance is never asserted by this script; it is dispatched separately.
+    print("  visual       PENDING (dispatch core.verify.judge; no fabricated PASS)")
+    print("PASS (scripted checks only)" if failures == 0 else f"{failures} check(s) failed")
     return 0 if failures == 0 else 1
 
 

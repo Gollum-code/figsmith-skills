@@ -5,19 +5,125 @@
   "description": "Slide page types. Route: HTML/CSS -> PDF (backends/html2pdf.py).",
   "route": "html",
   "page_sizes": {
-    "16:9": [1280, 720],
-    "4:3": [1024, 768],
-    "portrait": [720, 1280]
+    "16:9": [
+      1280,
+      720
+    ],
+    "4:3": [
+      1024,
+      768
+    ],
+    "portrait": [
+      720,
+      1280
+    ]
   },
   "chart_types": [
-    { "id": "title_page", "name": "Title slide", "route": "html", "size": "16:9", "keywords": ["标题页", "封面", "title", "cover"] },
-    { "id": "agenda_page", "name": "Agenda slide", "route": "html", "size": "16:9", "keywords": ["目录", "议程", "agenda"] },
-    { "id": "section_divider", "name": "Section divider", "route": "html", "size": "16:9", "keywords": ["过渡页", "章节", "divider", "section"] },
-    { "id": "content_text", "name": "Text content slide", "route": "html", "size": "16:9", "keywords": ["正文页", "文字", "content", "bullet"] },
-    { "id": "content_chart", "name": "Chart slide", "route": "html", "size": "16:9", "keywords": ["图表页", "chart", "data slide"] },
-    { "id": "content_two_column", "name": "Two-column slide", "route": "html", "size": "16:9", "keywords": ["双栏", "对比", "two column"] },
-    { "id": "content_quote", "name": "Quote slide", "route": "html", "size": "16:9", "keywords": ["引用", "quote", "大字"] },
-    { "id": "image_full", "name": "Full-bleed image slide", "route": "html", "size": "16:9", "keywords": ["全屏图", "image", "full bleed"] },
-    { "id": "closing_page", "name": "Closing slide", "route": "html", "size": "16:9", "keywords": ["结尾", "致谢", "closing", "thanks"] }
+    {
+      "id": "title_page",
+      "name": "Title slide",
+      "route": "html",
+      "size": "16:9",
+      "keywords": [
+        "标题页",
+        "封面",
+        "title",
+        "cover",
+        "幻灯片",
+        "slide",
+        "演示"
+      ]
+    },
+    {
+      "id": "agenda_page",
+      "name": "Agenda slide",
+      "route": "html",
+      "size": "16:9",
+      "keywords": [
+        "目录",
+        "议程",
+        "agenda"
+      ]
+    },
+    {
+      "id": "section_divider",
+      "name": "Section divider",
+      "route": "html",
+      "size": "16:9",
+      "keywords": [
+        "过渡页",
+        "章节",
+        "divider",
+        "section"
+      ]
+    },
+    {
+      "id": "content_text",
+      "name": "Text content slide",
+      "route": "html",
+      "size": "16:9",
+      "keywords": [
+        "正文页",
+        "文字",
+        "content",
+        "bullet"
+      ]
+    },
+    {
+      "id": "content_chart",
+      "name": "Chart slide",
+      "route": "html",
+      "size": "16:9",
+      "keywords": [
+        "图表页",
+        "chart",
+        "data slide"
+      ]
+    },
+    {
+      "id": "content_two_column",
+      "name": "Two-column slide",
+      "route": "html",
+      "size": "16:9",
+      "keywords": [
+        "双栏",
+        "对比",
+        "two column"
+      ]
+    },
+    {
+      "id": "content_quote",
+      "name": "Quote slide",
+      "route": "html",
+      "size": "16:9",
+      "keywords": [
+        "引用",
+        "quote",
+        "大字"
+      ]
+    },
+    {
+      "id": "image_full",
+      "name": "Full-bleed image slide",
+      "route": "html",
+      "size": "16:9",
+      "keywords": [
+        "全屏图",
+        "image",
+        "full bleed"
+      ]
+    },
+    {
+      "id": "closing_page",
+      "name": "Closing slide",
+      "route": "html",
+      "size": "16:9",
+      "keywords": [
+        "结尾",
+        "致谢",
+        "closing",
+        "thanks"
+      ]
+    }
   ]
 }

@@ -79,15 +79,29 @@ python -m core.verify.check_tiling my.png
 **用它当**：柱状、折线、散点、箱线——任何数据点必须来自数据表。
 
 ```bash
-# 数据 → JSON spec → SVG/PNG，全程 mpl2svg
-python -m backends.mpl2svg spec.json -o fig.svg --png fig.png
-python -m backends.pdf spec.json -o fig.pdf
+# 冻结表 → columns 声明 → SVG/PNG，全程 mpl2svg
+python -m backends.mpl2svg figure.ir.json -o figure.svg --png figure.png
+```
+
+IR 的数据层只声明列名，不写数字：
+
+```jsonc
+"data": {
+  "source": "data/trials.csv",
+  "series": [
+    { "name": "Experiment",
+      "columns": { "x": "condition", "y": "mean", "yerr": "sd" },
+      "error_kind": "SD" }
+  ],
+  "units": { "x": "condition", "y": "a.u." }
+}
 ```
 
 **要点**：
-- 数据先冻进 CSV/表，**图上不手挪点**。
+- 数据先冻进 CSV/表，**图上不手挪点**。声明了 `source` 又内联数字会被校验器拒绝。
 - 超宽图有 4000px 宽度守门，超了拆成多面板。
 - 统计图**不要**走 `backends.svg.py`（topology 为空，会得到空画布）。路由见配方 6。
+- 冻结纪律与常见报错：`domains/paper-figure/references/data-freeze.md`。
 
 ---
 
@@ -100,10 +114,11 @@ python -m backends.pdf spec.json -o fig.pdf
 python -m backends.html2pdf slide.html -o slide.pdf --png slide.png --size 1280x720
 
 # 验收：PDF 必须单页、文字矢量；PNG 代理三查
-python tools/pdf_check.py slide.pdf          # pages=1 且 text_ops=True
+python tools/pdf_check.py slide.pdf          # pages=1 且 text_ops>0 且 vector=True
 python -m core.verify.check_contrast slide.png
 python -m core.verify.check_tiling slide.png
 ```
+
 **要点**：
 - **渐变 / 阴影只做点缀**（header bar、封面）：spike 实测它们会被光栅化成图片。
   结构色一律用平涂令牌色。

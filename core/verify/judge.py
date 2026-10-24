@@ -38,6 +38,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from core.tokens import load as load_tokens  # noqa: E402
 
 PROTOCOL_PATH = Path(__file__).with_name("judge_template.md")
+# Resolved from this file, not from the working directory: the tool has to find the same
+# acceptance criteria no matter where the agent ran it from.
+DOMAINS_DIR = Path(__file__).resolve().parents[2] / "domains"
 RESULTS_DIR = Path("verify-results")
 
 
@@ -127,9 +130,9 @@ def build_dispatch(image: Path, ir_path: Path | None, domain: str, chart_type: s
 
 def _domain_acceptance(domain: str) -> str:
     """Pull the acceptance criteria verbatim from the domain's SKILL.md."""
-    skill = Path("domains") / domain / "SKILL.md"
+    skill = DOMAINS_DIR / domain / "SKILL.md"
     if not skill.exists():
-        return f"（未找到 domains/{domain}/SKILL.md，请按默认标准：图元齐全、文字可读、对齐一致）"
+        return f"（未找到 {skill}，请按默认标准：图元齐全、文字可读、对齐一致）"
     text = skill.read_text(encoding="utf-8-sig")
     lines = text.splitlines()
     start = None
@@ -166,9 +169,28 @@ def collect_verdict(image: Path, verdict_file: Path | None) -> dict:
     except (OSError, json.JSONDecodeError) as exc:
         result["note"] = f"裁判回复不是合法 JSON（{exc}）：按 PENDING 处理，禁止填 PASS。"
         return result
+    if not isinstance(reply, dict):
+        result["note"] = f"裁判回复不是 JSON 对象：按 PENDING 处理，禁止填 PASS。"
+        return result
 
     verdict = str(reply.get("verdict", "")).upper()
-    issues = reply.get("issues") or []
+    raw_issues = reply.get("issues")
+    if raw_issues is None:
+        issues: list = []
+    elif isinstance(raw_issues, list):
+        issues = raw_issues
+    else:
+        # A malformed `issues` is a malformed reply, not a crash: the whole point of
+        # this function is that a bad verdict degrades to PENDING, never to an exception
+        # the caller has to handle.
+        result["note"] = (f"裁判回复的 issues 不是数组（得到 "
+                          f"{type(raw_issues).__name__}）：按 PENDING 处理，禁止填 PASS。")
+        return result
+
+    for issue in issues:
+        if not isinstance(issue, dict):
+            result["note"] = "裁判回复的 issues 含非对象条目：按 PENDING 处理，禁止填 PASS。"
+            return result
     result["issues"] = issues
 
     if verdict not in ("PASS", "FAIL"):

@@ -302,8 +302,7 @@ def to_ir(parsed: dict, tokens: str = "academic") -> dict:
             "domain": "docs-diagram",
             "chart_type": parsed["type"],
             "tokens": tokens,
-            "width_unit": 100,
-            "height_unit": 40,
+            "width_unit": 100
         },
         "content": {"labels": labels, "legend": [], "footnote": ""},
         "topology": {"nodes": topo_nodes, "edges": topo_edges},

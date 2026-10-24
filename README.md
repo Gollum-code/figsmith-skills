@@ -69,7 +69,8 @@ figsmith-skills/
 |---|---|---|
 | `paper-figure` | SVG / MPL | 论文结构图 + 统计图（65 图型） |
 | `arch-diagram` | SVG | 分层 / 流水线 / 状态机 / 时序 / 部署 / 组件 |
-| `docs-diagram` | SVG（解析重渲染） | mermaid / drawio 源消化成统一风格 || `infographic` | SVG / HTML | 时间轴 / 对比 / 步骤 / 数据大字 / 长图 |
+| `docs-diagram` | SVG（解析重渲染） | mermaid / drawio 源消化成统一风格 |
+| `infographic` | SVG / HTML | 时间轴 / 对比 / 步骤 / 数据大字 / 长图 |
 | `deck-slides` | HTML→PDF | 标题页 / 内容页 / 过渡页 / 结尾页 |
 | `poster-flyer` | HTML→PDF | 学术海报 / 传单 / 社媒 banner |
 | `icon-logo` | SVG | 2px 网格对齐的图标 / 标识 |

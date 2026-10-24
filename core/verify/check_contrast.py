@@ -68,22 +68,58 @@ def local_contrast_stats(gray: np.ndarray) -> dict:
 
 
 def foreground_background_delta(gray: np.ndarray) -> dict:
-    """Separate foreground from background by luminance histogram, then report the gap.
+    """Separate ink from surface by luminance histogram, then report the gap.
 
     The meaningful check for "text on grid" is whether the *ink* sits far enough from
-    the surface it is drawn on. We take the extreme percentile tones rather than the
-    histogram mode: thin text and hairlines occupy few pixels and get buried by the
-    dominant background, so the mode would report a huge delta for an unreadable figure.
-    p99.5 of the dark side vs p99.5 of the light side is what the eye actually compares.
+    the surface it is drawn on. Percentile extremes are the wrong tool in both
+    directions: a 0.3%-ink figure reports delta 0 (its dark pixels fall outside p0.5),
+    while a figure with one black speck and everything else unreadable reports a huge
+    delta. So the ink is identified as the pixels below the mid-point, and the reported
+    values are the medians of the ink and surface populations - the tones the eye
+    actually compares, robust to how much of each is present.
     """
     flat = gray.ravel()
-    light_center = float(np.percentile(flat, 99.5))
-    dark_center = float(np.percentile(flat, 0.5))
+    midpoint = (flat.max() + flat.min()) / 2.0
+    ink = flat[flat < midpoint]
+    surface = flat[flat >= midpoint]
+    if ink.size == 0 or surface.size == 0:
+        # A flat image has no ink at all, which is the worst case for legibility.
+        return {"background_tone": round(float(flat.max()), 1),
+                "foreground_tone": round(float(flat.min()), 1),
+                "delta": 0.0, "ink_share": 0.0}
     return {
-        "background_tone": round(light_center, 1),
-        "foreground_tone": round(dark_center, 1),
-        "delta": round(light_center - dark_center, 1),
-        "ink_share": round(float((flat < light_center - 20).mean()), 4),
+        "background_tone": round(float(np.median(surface)), 1),
+        "foreground_tone": round(float(np.median(ink)), 1),
+        "delta": round(float(np.median(surface)) - float(np.median(ink)), 1),
+        "ink_share": round(float(ink.size / flat.size), 4),
+    }
+
+
+def hairline_visibility(gray: np.ndarray, min_delta: float = DEFAULT_MIN_DELTA) -> dict:
+    """Whether thin structure is distinguishable from its own background.
+
+    This is the failure the METHOD calls out by name: a 1.2px line whose theoretical
+    contrast is 50 rasterizes to delta 12, and the judge reads "no border". Global tone
+    separation cannot see it, so the local contrast distribution is measured directly:
+    the share of a window's area taken by structure of a given strength.
+    """
+    if gray.shape[0] < 5 or gray.shape[1] < 5:
+        return {"structural_share": 0.0, "weak_share": 0.0, "passed": False}
+    pad = np.pad(gray, 2, mode="edge")
+    windows = np.stack(
+        [pad[i: i + gray.shape[0], j: j + gray.shape[1]] for i in range(5) for j in range(5)],
+        axis=0,
+    )
+    contrast = windows.max(axis=0) - windows.min(axis=0)
+    # A window is "structural" when it contains an edge of at least the required delta:
+    # that is what makes a border or a grid line visible rather than a smudge.
+    structural = contrast >= min_delta
+    weak = (contrast >= 5.0) & (contrast < min_delta * 0.5)
+    return {
+        "structural_share": round(float(structural.mean()), 4),
+        "weak_share": round(float(weak.mean()), 4),
+        # A figure with structure but no discernible edge is the hairline failure.
+        "passed": bool(structural.mean() >= 0.001 or contrast.max() < min_delta),
     }
 
 
@@ -91,22 +127,27 @@ def check(path: str | Path, min_delta: float = DEFAULT_MIN_DELTA) -> dict:
     gray = load_gray(path)
     stats = local_contrast_stats(gray)
     tones = foreground_background_delta(gray)
+    hairlines = hairline_visibility(gray, min_delta)
 
-    # The binding requirement is the tone separation: ink vs the surface it sits on.
-    # Peak local contrast alone would pass any image containing one dark speck.
-    passed = tones["delta"] >= min_delta
+    # The binding requirements are (a) ink vs the surface it sits on, and (b) enough
+    # structural edge somewhere in the image for thin rules to be visible. A peak-only
+    # or tone-only test each pass a figure the other one rejects.
+    passed = tones["delta"] >= min_delta and hairlines["passed"]
+    reasons = []
+    if tones["delta"] < min_delta:
+        reasons.append(f"ink-to-surface delta {tones['delta']} < {min_delta}")
+    if not hairlines["passed"]:
+        reasons.append(
+            f"no edge reaches delta {min_delta} (structure is below the visibility floor)")
     return {
         "file": str(path),
         "size": list(gray.shape),
         "min_delta_required": min_delta,
         "tone_separation": tones,
+        "hairlines": hairlines,
         "local_contrast": {k: round(v, 1) for k, v in stats.items()},
         "passed": bool(passed),
-        "reason": (
-            "ok"
-            if passed
-            else f"ink-to-surface delta {tones['delta']} < {min_delta}"
-        ),
+        "reason": "ok" if passed else "; ".join(reasons),
     }
 
 

@@ -31,6 +31,42 @@ from core.tokens import load as load_tokens  # noqa: E402
 PRIMITIVES = {"box", "arrow", "polyline", "band", "label"}
 
 
+def parse_svg_size(svg_text: str) -> tuple[float, float, str]:
+    """Read the *root* `<svg>` width/height and their unit.
+
+    Searching the whole document for `width="..." height="..."` picked up whichever
+    rectangle happened to appear first, which made the PDF page size depend on element
+    order (matplotlib emits its root size in points, with units). Only the root tag is
+    authoritative; `viewBox` is the fallback when a tool omits width/height.
+    """
+    import re
+
+    tag = re.search(r"<svg\b[^>]*>", svg_text, re.S)
+    if not tag:
+        raise ValueError("no <svg> root element")
+    attrs = tag.group(0)
+
+    def _len(name: str) -> tuple[float, str] | None:
+        m = re.search(rf'\b{name}\s*=\s*"([\d.]+)\s*(px|pt|mm|cm|in)?"', attrs)
+        if not m:
+            return None
+        return float(m.group(1)), (m.group(2) or "px")
+
+    w = _len("width")
+    h = _len("height")
+    if w and h:
+        # A mismatch in units is not something to guess about quietly.
+        if w[1] != h[1]:
+            raise ValueError(f"root width/height units differ ({w[1]} vs {h[1]})")
+        return w[0], h[0], w[1]
+    vb = re.search(r'\bviewBox\s*=\s*"([\d.\-\s]+)"', attrs)
+    if vb:
+        parts = vb.group(1).split()
+        if len(parts) == 4:
+            return float(parts[2]), float(parts[3]), "px"
+    raise ValueError("SVG has no explicit width/height or viewBox; cannot size the canvas")
+
+
 # --------------------------------------------------------------------------
 # layout resolution
 # --------------------------------------------------------------------------
@@ -236,14 +272,16 @@ def resolve_layout(ir: dict, scale: float = 1.0) -> tuple[list[Node], dict]:
         max_bottom = max(max_bottom, y + h)
 
     # Derived canvas, not declared: content + symmetric margin (METHOD 2.3).
+    # Both the grid extent and explicit coordinates grow it, so a figure laid out by
+    # hand is never cropped at the grid boundary.
     max_col = max((max(int(e.get("col", 0)), 0) + max(int(e.get("col_span", 1)), 1)
                    for e in nodes_layout.values()), default=1)
     max_row = max((max(int(e.get("row", 0)), 0) + max(int(e.get("row_span", 1)), 1)
                    for e in nodes_layout.values()), default=1)
     right_edge = origin_x + max_col * box_w_u * px_per_unit + (max_col - 1) * gap_x_u * px_per_unit
     bottom_edge = origin_y + max_row * box_h_u * px_per_unit + (max_row - 1) * gap_y_u * px_per_unit
-    canvas_w = max(canvas_w_px, right_edge + margin)
-    canvas_h = bottom_edge + margin
+    canvas_w = max(canvas_w_px, right_edge + margin, max_right + margin)
+    canvas_h = max(bottom_edge + margin, max_bottom + margin)
     info = {
         "canvas_w": round(canvas_w, 2),
         "canvas_h": round(canvas_h, 2),
@@ -263,8 +301,18 @@ def resolve_layout(ir: dict, scale: float = 1.0) -> tuple[list[Node], dict]:
 # --------------------------------------------------------------------------
 
 def _font_attr(tokens, role: str) -> str:
+    """A font stack covering latin and CJK, in one attribute.
+
+    Without the CJK entry the PDF backend resolves only Arial and every Chinese glyph
+    silently disappears from the deliverable (a paper-figure figure is mostly Chinese).
+    The stack is quoted-family lists, which the SVG, PDF and Pillow readers all accept.
+    """
     latin = tokens.font(role, "latin")
-    return f'font-family="{escape(latin)}, serif"'
+    latin_fb = tokens.get(f"fonts.{tokens.get(f'fonts.role.{role}', 'sans')}.latin_fallback")
+    cjk = tokens.font(role, "cjk")
+    cjk_fb = tokens.get(f"fonts.{tokens.get(f'fonts.role.{role}', 'sans')}.cjk_fallback")
+    stack = [n for n in (latin, latin_fb, cjk, cjk_fb) if n]
+    return f'font-family="{escape(", ".join(stack))}"'
 
 
 def _label_lines(text: str, size_px: float, box_w: float, tokens) -> list[str]:
@@ -314,17 +362,18 @@ def _text_block(x: float, y: float, w: float, h: float, lines: list[str], size_p
     # The halo that separates text from a busy background is the surface color, so it
     # stays correct under a dark token set instead of always being white.
     halo = tokens.c("colors.surface")
+    family = _font_attr(tokens, role)
     out = []
     for i, line in enumerate(lines):
         cy = start_y + i * lh
         if anchor == "middle":
             out.append(f'<text x="{x + w / 2:.2f}" y="{cy:.2f}" font-size="{size_px:.2f}" '
-                       f'fill="{color}" text-anchor="middle" '
+                       f'{family} fill="{color}" text-anchor="middle" '
                        f'paint-order="stroke" stroke="{halo}" stroke-width="{max(size_px * 0.12, 2.5):.2f}">'
                        f'{escape(line)}</text>')
         else:
             out.append(f'<text x="{x + 10:.2f}" y="{cy:.2f}" font-size="{size_px:.2f}" '
-                       f'fill="{color}" text-anchor="start" '
+                       f'{family} fill="{color}" text-anchor="start" '
                        f'paint-order="stroke" stroke="{halo}" stroke-width="{max(size_px * 0.12, 2.5):.2f}">'
                        f'{escape(line)}</text>')
     return out
@@ -348,6 +397,10 @@ def render(ir: dict, out_path: str | None = None, scale: float = 1.0,
     # pt -> px via the effective dpi (physical width is what makes "pt" meaningful).
     # The box-height cap keeps text/box proportion when the canvas resizes.
     text_size_px = min(text_size_pt * info["effective_dpi"] / 72.0, box_h_px * 0.42)
+    # Annotation text follows the same pt -> px path as body text. Using the raw pt
+    # number as px made edge labels 2-3x smaller than the panel labels beside them.
+    annotation_pt = tokens.s("fonts.size_pt.annotation", 8.0)
+    annotation_px = max(annotation_pt * info["effective_dpi"] / 72.0, 7.0)
     radius = tokens.get("radius.box", 3) * scale
     emphasis = set(style.get("emphasis", []))
 
@@ -385,6 +438,7 @@ def render(ir: dict, out_path: str | None = None, scale: float = 1.0,
         parts.append(
             f'<text x="{node.x + pad:.2f}" y="{node.y + pad + band_title_px * 0.85:.2f}" '
             f'font-size="{band_title_px:.2f}" font-weight="600" '
+            f'{_font_attr(tokens, "panel_label")} '
             f'fill="{tokens.c("colors.ink_secondary")}" text-anchor="start">{escape(text)}</text>'
         )
 
@@ -425,7 +479,8 @@ def render(ir: dict, out_path: str | None = None, scale: float = 1.0,
         src, dst = by_id.get(edge["from"]), by_id.get(edge["to"])
         if src is None or dst is None:
             continue
-        parts.append(_arrow(src, dst, stroke_default, stroke_w, tokens, labels, edge))
+        parts.append(_arrow(src, dst, stroke_default, stroke_w, tokens, labels, edge,
+                            annotation_px))
 
     parts.append("</svg>")
     svg = "\n".join(parts)
@@ -434,8 +489,13 @@ def render(ir: dict, out_path: str | None = None, scale: float = 1.0,
     return svg
 
 
-def _arrow(src: Node, dst: Node, stroke: str, width: float, tokens, labels: dict, edge: dict) -> str:
-    """Straight connector, horizontal or vertical, with a small triangular head."""
+def _arrow(src: Node, dst: Node, stroke: str, width: float, tokens, labels: dict, edge: dict,
+           annotation_px: float, reverse: bool = False) -> str:
+    """Straight connector, horizontal or vertical, with a small triangular head.
+
+    Every edge gets a head. A link drawn without one reads as an undirected association,
+    and a back edge in a flow diagram then looks like a second forward edge.
+    """
     head = tokens.get("stroke.arrow_head", 5.0)
     # horizontal
     if abs(src.cy - dst.cy) < 1.0:
@@ -445,41 +505,56 @@ def _arrow(src: Node, dst: Node, stroke: str, width: float, tokens, labels: dict
         elif src.x > dst.right:
             x1, x2 = dst.right, src.x
         else:  # same column, fall through to vertical
-            return _arrow_v(src, dst, stroke, width, head, labels, edge, tokens)
+            return _arrow_v(src, dst, stroke, width, head, labels, edge, tokens,
+                            annotation_px, reverse)
         parts = [f'<line x1="{x1:.2f}" y1="{y:.2f}" x2="{x2 - head:.2f}" y2="{y:.2f}" '
                  f'stroke="{stroke}" stroke-width="{width:.2f}"/>',
                  f'<path d="M {x2:.2f} {y:.2f} l {-head:.2f} {-head * 0.6:.2f} '
                  f'l 0 {head * 1.2:.2f} Z" fill="{stroke}"/>']
-        return "\n".join(parts) + _edge_label(edge, (x1 + x2) / 2, y - 8, tokens, labels)
-    return _arrow_v(src, dst, stroke, width, head, labels, edge, tokens)
+        return "\n".join(parts) + _edge_label(edge, (x1 + x2) / 2, y - 8, tokens, labels,
+                                              annotation_px)
+    return _arrow_v(src, dst, stroke, width, head, labels, edge, tokens, annotation_px, reverse)
 
 
 def _arrow_v(src: Node, dst: Node, stroke: str, width: float, head: float, labels: dict,
-             edge: dict, tokens) -> str:
+             edge: dict, tokens, annotation_px: float, reverse: bool = False) -> str:
     if dst.y > src.bottom:
         x, y1, y2 = src.cx, src.bottom, dst.y
     elif src.y > dst.bottom:
         x, y1, y2 = dst.cx, dst.bottom, src.y
     else:
-        # not vertically stacked and not horizontally separated: offset the link so the
-        # two forms never overlap (arch-diagram collision #5)
-        x1, x2 = src.right, dst.x if dst.x > src.right else src.x
-        return (f'<line x1="{x1:.2f}" y1="{src.cy:.2f}" x2="{x2:.2f}" y2="{src.cy:.2f}" '
-                f'stroke="{stroke}" stroke-width="{width:.2f}"/>')
+        # Not vertically stacked and not horizontally separated: route the link on the
+        # side that faces the destination, and keep the arrow head so a back edge is
+        # still visibly a return path (arch-diagram collision #5).
+        if dst.x >= src.right:
+            x1, x2 = src.right, dst.x
+        elif src.x >= dst.right:
+            x1, x2 = dst.right, src.x
+        else:
+            x1, x2 = src.x, dst.x
+        y = src.cy
+        step = -head if x2 > x1 else head
+        return (f'<line x1="{x1:.2f}" y1="{y:.2f}" x2="{x2 - step:.2f}" y2="{y:.2f}" '
+                f'stroke="{stroke}" stroke-width="{width:.2f}"/>' +
+                f'<path d="M {x2:.2f} {y:.2f} l {-step:.2f} {-head * 0.6:.2f} '
+                f'l 0 {head * 1.2:.2f} Z" fill="{stroke}"/>' +
+                _edge_label(edge, (x1 + x2) / 2, y - 8, tokens, labels, annotation_px))
     parts = [f'<line x1="{x:.2f}" y1="{y1:.2f}" x2="{x:.2f}" y2="{y2 - head:.2f}" '
              f'stroke="{stroke}" stroke-width="{width:.2f}"/>',
              f'<path d="M {x:.2f} {y2:.2f} l {-head * 0.6:.2f} {-head:.2f} '
              f'l {head * 1.2:.2f} 0 Z" fill="{stroke}"/>']
-    return "\n".join(parts) + _edge_label(edge, x + 8, (y1 + y2) / 2, tokens, labels)
+    return "\n".join(parts) + _edge_label(edge, x + 8, (y1 + y2) / 2, tokens, labels,
+                                          annotation_px)
 
 
-def _edge_label(edge: dict, x: float, y: float, tokens, labels: dict) -> str:
+def _edge_label(edge: dict, x: float, y: float, tokens, labels: dict,
+                size_px: float) -> str:
     text = labels.get(edge.get("label", ""))
     if not text:
         return ""
-    size = tokens.s("fonts.size_pt.annotation", 8) * 1.0
-    # annotation size follows the same pt->px path as body text
-    return (f'<text x="{x:.2f}" y="{y:.2f}" font-size="{size:.2f}" '
+    # annotation size arrives already converted from pt to px, exactly like body text.
+    return (f'<text x="{x:.2f}" y="{y:.2f}" font-size="{size_px:.2f}" '
+            f'{_font_attr(tokens, "annotation")} '
             f'fill="{tokens.c("colors.ink_secondary")}" '
             f'paint-order="stroke" stroke="{tokens.c("colors.surface")}" '
             f'stroke-width="3">{escape(text)}</text>')

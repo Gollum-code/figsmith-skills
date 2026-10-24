@@ -13,9 +13,9 @@ description: 幻灯片域。标题页、图表页、过渡页、结尾页的 HTM
 
 ```
 用户要幻灯片
-  ├─ 单页导出 → 本域 build.py 一页一 PDF
+  ├─ 单页导出 → 一页一个 HTML，一页一个 PDF
   ├─ 多页成套 → 每页独立 HTML，同名编号（slide_01.html...）
-  └─ 要 PPTX 可编辑 → backends/pptx.py 走 IR（结构页），非布局页
+  └─ 要 PPTX 可编辑 → backends/pptx.py 走 IR（结构页或统计图页），非布局页
 ```
 
 ## 2. 页面规格

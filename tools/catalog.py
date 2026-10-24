@@ -54,7 +54,7 @@ def load_domain_catalogs() -> list[dict]:
     return catalogs
 
 
-def merge(out: Path | None = None) -> dict:
+def merge(out: Path | None = None, write: bool = True) -> dict:
     merged: dict = {
         "schema": "figsmith.catalog.index/1.0",
         "domains": [],
@@ -73,9 +73,10 @@ def merge(out: Path | None = None) -> dict:
                 **entry,
                 "domain": domain,
             })
-    out = out or (GALLERY / "catalog.json")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(merged, indent=2, ensure_ascii=False), encoding="utf-8")
+    if write:
+        out = out or (GALLERY / "catalog.json")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(merged, indent=2, ensure_ascii=False), encoding="utf-8")
     return merged
 
 
@@ -84,8 +85,20 @@ def route(intent: str, index: dict | None = None) -> list[dict]:
 
     Scoring: exact id match > keyword substring hit. Ties break by domain priority
     (paper-figure first: it is the most constrained domain and the most common ask).
+
+    This is a read-only query. It used to rebuild gallery/catalog.json on every call,
+    which made `route` fail on a read-only checkout and race between parallel agents.
+    The index is loaded from disk when present and merged in memory otherwise.
     """
-    index = index or merge()
+    if index is None:
+        index_path = GALLERY / "catalog.json"
+        if index_path.exists():
+            try:
+                index = json.loads(index_path.read_text(encoding="utf-8-sig"))
+            except (OSError, json.JSONDecodeError):
+                index = merge(write=False)
+        else:
+            index = merge(write=False)
     text = intent.strip().lower()
     if not text:
         return []

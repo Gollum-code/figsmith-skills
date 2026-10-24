@@ -4,8 +4,7 @@
     "domain": "docs-diagram",
     "chart_type": "flowchart",
     "tokens": "academic",
-    "width_unit": 100,
-    "height_unit": 40
+    "width_unit": 100
   },
   "content": {
     "labels": {

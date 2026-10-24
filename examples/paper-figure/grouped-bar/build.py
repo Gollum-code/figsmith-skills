@@ -27,11 +27,8 @@ OUT_PDF = HERE / "figure2.pdf"
 
 rows = list(csv.DictReader(DATA.open(encoding="utf-8")))
 conditions = [r["condition"] for r in rows]
-experiment = [float(r["experiment_mean"]) for r in rows]
-experiment_sd = [float(r["experiment_sd"]) for r in rows]
-control = [float(r["control_mean"]) for r in rows]
-control_sd = [float(r["control_sd"]) for r in rows]
 n = int(rows[0]["n"])
+print(f"frozen table: {DATA.name}  rows={len(rows)}  n={n}  conditions={conditions}")
 
 # ---- 2. build the IR (data stays external, IR only references it) -------------
 
@@ -42,8 +39,7 @@ ir = {
         "chart_type": "bar_grouped",
         "tokens": "academic",
         "title": "Figure 2. Dose-response comparison",
-        "width_unit": 100,
-        "height_unit": 62,
+        "width_unit": 100
     },
     "content": {
         "labels": {},
@@ -68,15 +64,16 @@ ir = {
         "emphasis": [],
     },
     "data": {
-        "source": str(DATA.relative_to(HERE.parents[2])),
+        # Relative to this IR, so the figure regenerates from any working directory.
+        "source": str((DATA).relative_to(HERE)),
         "categories": conditions,
         "series": [
-            {"name": "Experiment", "x": list(range(len(conditions))),
-             "y": experiment, "yerr": experiment_sd, "error_kind": "SD",
-             "kind": "bar_grouped", "width": 0.36},
-            {"name": "Control", "x": list(range(len(conditions))),
-             "y": control, "yerr": control_sd, "error_kind": "SD",
-             "kind": "bar_grouped", "width": 0.36},
+            {"name": "Experiment",
+             "columns": {"x": "condition", "y": "experiment_mean", "yerr": "experiment_sd"},
+             "error_kind": "SD", "kind": "bar_grouped", "width": 0.36},
+            {"name": "Control",
+             "columns": {"x": "condition", "y": "control_mean", "yerr": "control_sd"},
+             "error_kind": "SD", "kind": "bar_grouped", "width": 0.36},
         ],
         "units": {"x": "condition", "y": "a.u."},
         "statistics": {
@@ -100,7 +97,7 @@ from core.tokens import load as load_tokens  # noqa: E402
 ir_path = HERE / "figure2.ir.json"
 ir_path.write_text(json.dumps(ir, indent=2, ensure_ascii=False), encoding="utf-8")
 
-render(ir, str(OUT_SVG), str(OUT_PNG))
+render(ir, str(OUT_SVG), str(OUT_PNG), base_dir=HERE)
 print(f"wrote {OUT_SVG}, {OUT_PNG}, {ir_path}")
 
 # PDF companion from the same spec: one declaration, three artifacts.
@@ -112,7 +109,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 tokens = load_tokens("academic")
 _apply_rc(tokens, 600)
 fig, ax = plt.subplots(figsize=ir["layout"]["canvas"]["figsize_inches"])
-_draw(ax, ir, tokens)
+_draw(ax, ir, tokens, base_dir=HERE)
 fig.tight_layout()
 fig.savefig(OUT_PDF, format="pdf", bbox_inches="tight", facecolor=tokens.c("colors.surface"))
 plt.close(fig)
