@@ -42,8 +42,19 @@ def load_gray(path: str | Path) -> np.ndarray:
 
 
 def ink_mask(gray: np.ndarray, threshold: float = 0.92) -> np.ndarray:
-    """Boolean mask of 'ink' pixels: anything meaningfully darker than paper."""
-    return gray < threshold
+    """Boolean mask of 'ink' pixels: anything meaningfully different from the paper.
+
+    The old rule was "darker than 0.92", which assumes a light background. A figure on a
+    dark token set then had its whole canvas counted as ink, so the band/column analysis
+    reported one giant band and no columns. The background is now the dominant tone
+    (histogram mode) and ink is whatever differs from it in either direction by at least
+    `1 - threshold` (0.08 by default, i.e. the same 0.92 cut for a white canvas).
+    """
+    if gray.size == 0:
+        return np.zeros_like(gray, dtype=bool)
+    vals, counts = np.unique(np.round(gray * 255).astype(np.int64), return_counts=True)
+    background = float(vals[int(counts.argmax())]) / 255.0
+    return np.abs(gray - background) > (1.0 - threshold)
 
 
 def _runs(mask_1d: np.ndarray, min_gap: int = MIN_GAP_PX) -> list[tuple[int, int]]:

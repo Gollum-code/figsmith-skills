@@ -111,6 +111,8 @@ _apply_rc(tokens, 600)
 fig, ax = plt.subplots(figsize=ir["layout"]["canvas"]["figsize_inches"])
 _draw(ax, ir, tokens, base_dir=HERE)
 fig.tight_layout()
-fig.savefig(OUT_PDF, format="pdf", bbox_inches="tight", facecolor=tokens.c("colors.surface"))
+fig.savefig(OUT_PDF, format="pdf", bbox_inches="tight",
+            facecolor=tokens.c("colors.surface"),
+            metadata={"CreationDate": None, "ModDate": None})
 plt.close(fig)
 print(f"wrote {OUT_PDF}")

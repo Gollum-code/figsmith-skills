@@ -42,22 +42,53 @@ def load_gray(path: str | Path) -> np.ndarray:
     return arr
 
 
-def local_contrast_stats(gray: np.ndarray) -> dict:
-    """Local contrast = max minus min in a 5x5 neighborhood (Sobel-free, cheap).
+def _window_max(a: np.ndarray, radius: int, axis: int) -> np.ndarray:
+    """1-D sliding max along one axis. All shifts read the input of this pass."""
+    out = a.copy()
+    for k in range(1, radius + 1):
+        if axis == 0:
+            np.maximum(out[k:], a[:-k], out=out[k:])
+            np.maximum(out[:-k], a[k:], out=out[:-k])
+        else:
+            np.maximum(out[:, k:], a[:, :-k], out=out[:, k:])
+            np.maximum(out[:, :-k], a[:, k:], out=out[:, :-k])
+    return out
 
-    Returns the distribution so a human can see *how* the image fails,
-    not just that it failed.
+
+def _window_min(a: np.ndarray, radius: int, axis: int) -> np.ndarray:
+    out = a.copy()
+    for k in range(1, radius + 1):
+        if axis == 0:
+            np.minimum(out[k:], a[:-k], out=out[k:])
+            np.minimum(out[:-k], a[k:], out=out[:-k])
+        else:
+            np.minimum(out[:, k:], a[:, :-k], out=out[:, k:])
+            np.minimum(out[:, :-k], a[:, k:], out=out[:, :-k])
+    return out
+
+
+def _local_contrast(gray: np.ndarray, radius: int = 2) -> np.ndarray:
+    """Per-pixel max-minus-min over a (2r+1) neighborhood.
+
+    Separable max/min filters instead of stacking 25 shifted copies: the stack version
+    allocated 25 * H * W * 8 bytes, which is 3.2 GB for the 4000px figure the probe report
+    calls the readable ceiling. Two passes per axis keep the peak at a few frames.
+
+    The columns pass must run on the row pass's *result* - running both against the
+    original array yields a 1-D max, not a square window.
     """
-    if gray.shape[0] < 5 or gray.shape[1] < 5:
+    if gray.shape[0] < 2 * radius + 1 or gray.shape[1] < 2 * radius + 1:
+        return np.zeros_like(gray)
+    hi = _window_max(_window_max(gray, radius, 0), radius, 1)
+    lo = _window_min(_window_min(gray, radius, 0), radius, 1)
+    return hi - lo
+
+
+def local_contrast_stats(gray: np.ndarray) -> dict:
+    """Distribution of local contrast, so a failure shows *how* the image fails."""
+    contrast = _local_contrast(gray)
+    if contrast.size == 0:
         return {"max": 0.0, "p50": 0.0, "p90": 0.0, "p99": 0.0, "mean": 0.0}
-    pad = np.pad(gray, 2, mode="edge")
-    windows = np.stack(
-        [pad[i : i + gray.shape[0], j : j + gray.shape[1]] for i in range(5) for j in range(5)],
-        axis=0,
-    )
-    local_max = windows.max(axis=0)
-    local_min = windows.min(axis=0)
-    contrast = local_max - local_min
     return {
         "max": float(contrast.max()),
         "p99": float(np.percentile(contrast, 99)),
@@ -68,57 +99,52 @@ def local_contrast_stats(gray: np.ndarray) -> dict:
 
 
 def foreground_background_delta(gray: np.ndarray) -> dict:
-    """Separate ink from surface by luminance histogram, then report the gap.
+    """Contrast of drawn structure against the surface immediately around it.
 
-    The meaningful check for "text on grid" is whether the *ink* sits far enough from
-    the surface it is drawn on. Percentile extremes are the wrong tool in both
-    directions: a 0.3%-ink figure reports delta 0 (its dark pixels fall outside p0.5),
-    while a figure with one black speck and everything else unreadable reports a huge
-    delta. So the ink is identified as the pixels below the mid-point, and the reported
-    values are the medians of the ink and surface populations - the tones the eye
-    actually compares, robust to how much of each is present.
+    A single global background tone does not exist in a real figure: a band fill, a card
+    and the page are three different surfaces, and picking the histogram mode measured
+    the band against the page (delta 9 on a perfectly readable figure). Local contrast
+    sidesteps that: every pixel is compared with its own neighbourhood, so text on a band
+    and text on paper are measured the same way.
+
+    `delta` is the median local contrast of edge-bearing pixels - the typical gap the eye
+    sees between a stroke and what is behind it. A figure whose only structure rasterized
+    below the floor has no such pixels and reports 0.
     """
-    flat = gray.ravel()
-    midpoint = (flat.max() + flat.min()) / 2.0
-    ink = flat[flat < midpoint]
-    surface = flat[flat >= midpoint]
-    if ink.size == 0 or surface.size == 0:
-        # A flat image has no ink at all, which is the worst case for legibility.
-        return {"background_tone": round(float(flat.max()), 1),
-                "foreground_tone": round(float(flat.min()), 1),
-                "delta": 0.0, "ink_share": 0.0}
+    local = _local_contrast(gray)
+    flat = local.ravel()
+    edge = flat[flat >= 3.0]
+    share = float(edge.size / flat.size) if flat.size else 0.0
+    if edge.size == 0 or share < 0.0005:
+        return {"surface_tone": round(float(np.median(gray.ravel())), 1),
+                "delta": 0.0, "ink_share": round(share, 4)}
     return {
-        "background_tone": round(float(np.median(surface)), 1),
-        "foreground_tone": round(float(np.median(ink)), 1),
-        "delta": round(float(np.median(surface)) - float(np.median(ink)), 1),
-        "ink_share": round(float(ink.size / flat.size), 4),
+        # Median tone of the non-edge area, for the human reading the report.
+        "surface_tone": round(float(np.median(gray.ravel()[local.ravel() < 3.0])), 1)
+        if (local < 3.0).any() else 0.0,
+        "delta": round(float(np.median(edge)), 1),
+        "ink_share": round(share, 4),
     }
 
 
 def hairline_visibility(gray: np.ndarray, min_delta: float = DEFAULT_MIN_DELTA) -> dict:
     """Whether thin structure is distinguishable from its own background.
 
-    This is the failure the METHOD calls out by name: a 1.2px line whose theoretical
-    contrast is 50 rasterizes to delta 12, and the judge reads "no border". Global tone
-    separation cannot see it, so the local contrast distribution is measured directly:
-    the share of a window's area taken by structure of a given strength.
+    The local-contrast distribution is measured directly: a window is "structural" when
+    it contains an edge at least `min_delta` strong, which is what makes a border or a
+    grid line visible rather than a smudge. `weak_share` is the population that has an
+    edge but one too faint to read, which is the hairline-rasterized-away signature.
     """
-    if gray.shape[0] < 5 or gray.shape[1] < 5:
+    contrast = _local_contrast(gray)
+    if contrast.size == 0:
         return {"structural_share": 0.0, "weak_share": 0.0, "passed": False}
-    pad = np.pad(gray, 2, mode="edge")
-    windows = np.stack(
-        [pad[i: i + gray.shape[0], j: j + gray.shape[1]] for i in range(5) for j in range(5)],
-        axis=0,
-    )
-    contrast = windows.max(axis=0) - windows.min(axis=0)
-    # A window is "structural" when it contains an edge of at least the required delta:
-    # that is what makes a border or a grid line visible rather than a smudge.
     structural = contrast >= min_delta
     weak = (contrast >= 5.0) & (contrast < min_delta * 0.5)
     return {
         "structural_share": round(float(structural.mean()), 4),
         "weak_share": round(float(weak.mean()), 4),
-        # A figure with structure but no discernible edge is the hairline failure.
+        # A flat image has no structure to be invisible in the first place; the tone check
+        # is what rejects it.
         "passed": bool(structural.mean() >= 0.001 or contrast.max() < min_delta),
     }
 
@@ -164,9 +190,9 @@ def main(argv: list[str]) -> int:
     else:
         for r in results:
             mark = "PASS" if r["passed"] else "FAIL"
-            print(f"[{mark}] {r['file']}  delta={r['tone_separation']['delta']} "
-                  f"(bg={r['tone_separation']['background_tone']}, "
-                  f"fg={r['tone_separation']['foreground_tone']})  {r['reason']}")
+            print(f"[{mark}] {r['file']}  structure delta={r['tone_separation']['delta']} "
+                  f"(surface={r['tone_separation']['surface_tone']}, "
+                  f"ink_share={r['tone_separation']['ink_share']})  {r['reason']}")
     return 0 if all(r["passed"] for r in results) else 1
 
 

@@ -69,8 +69,11 @@ def ir_to_mxfile(ir: dict, name: str = "figsmith") -> str:
     for node in ordered:
         style = _style(tokens, node.kind, node.id in emphasis)
         value = labels.get(node.id, "")
+        # The node id is untrusted IR data and lands in an XML attribute: an id containing
+        # a quote would break the file (and could inject a second cell).
         cells.append(
-            f'        <mxCell id="{node.id}" value="{_xml_escape(value)}" style="{style}" '
+            f'        <mxCell id="{_xml_escape(node.id)}" value="{_xml_escape(value)}" '
+            f'style="{style}" '
             f'vertex="1" parent="1">\n'
             f'          <mxGeometry x="{node.x:.0f}" y="{node.y:.0f}" '
             f'width="{node.w:.0f}" height="{node.h:.0f}" as="geometry"/>\n'
@@ -90,7 +93,8 @@ def ir_to_mxfile(ir: dict, name: str = "figsmith") -> str:
         label = _xml_escape(labels.get(edge.get("label", ""), ""))
         cells.append(
             f'        <mxCell id="edge_{i}" value="{label}" style="{arrow_style}" '
-            f'edge="1" parent="1" source="{edge["from"]}" target="{edge["to"]}">\n'
+            f'edge="1" parent="1" source="{_xml_escape(edge["from"])}" '
+            f'target="{_xml_escape(edge["to"])}">\n'
             f'          <mxGeometry relative="1" as="geometry">\n'
             f'            <mxPoint x="{src_x:.0f}" y="{src_y:.0f}" as="sourcePoint"/>\n'
             f'            <mxPoint x="{dst_x:.0f}" y="{dst_y:.0f}" as="targetPoint"/>\n'
@@ -141,13 +145,17 @@ def _decode_compressed_diagram(diagram: ET.Element) -> str | None:
     except (ValueError, TypeError) as exc:
         raise ValueError(f"compressed diagram body is not valid base64: {exc}") from exc
     try:
-        # The size cap is enforced by refusing an absurd ratio *and* a bounded result.
-        decoded = zlib.decompress(raw, -15).decode("utf-8")
+        # Bounded inflate: `zlib.decompress(raw)` materializes the whole payload first, so
+        # a real bomb would land in memory before the size check could reject it. The
+        # decompressobj stops at the cap and leaves the remainder in unconsumed_tail.
+        inflater = zlib.decompressobj(-15)
+        decoded_bytes = inflater.decompress(raw, MAX_DECOMPRESSED_CHARS + 1)
+        if len(decoded_bytes) > MAX_DECOMPRESSED_CHARS or inflater.unconsumed_tail:
+            raise ValueError(
+                f"decompressed diagram is too large (limit {MAX_DECOMPRESSED_CHARS} chars)")
+        decoded = decoded_bytes.decode("utf-8")
     except (zlib.error, UnicodeDecodeError) as exc:
         raise ValueError(f"compressed diagram body failed to inflate: {exc}") from exc
-    if len(decoded) > MAX_DECOMPRESSED_CHARS:
-        raise ValueError(
-            f"decompressed diagram is too large: {len(decoded)} > {MAX_DECOMPRESSED_CHARS}")
     return decoded
 
 
@@ -260,10 +268,12 @@ def main(argv: list[str]) -> int:
     if args.mode == "ir2drawio":
         ir = json.loads(src.read_text(encoding="utf-8-sig"))
         out = args.out or str(src.with_suffix(".drawio"))
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
         Path(out).write_text(ir_to_mxfile(ir, src.stem), encoding="utf-8")
     else:
         out = args.out or str(src.with_suffix(".ir.json"))
         ir = mxfile_to_ir(src.read_text(encoding="utf-8-sig"), args.tokens)
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
         Path(out).write_text(json.dumps(ir, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {out}")
     return 0

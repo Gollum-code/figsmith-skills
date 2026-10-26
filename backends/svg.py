@@ -120,23 +120,31 @@ def layer_graph(ir: dict, direction: str = "top-down") -> tuple[dict[str, int], 
         if a in adjacency and b in adjacency:
             adjacency[a].append(b)
 
-    # DFS to find back edges (edges into a node currently on the DFS stack).
+    # DFS to find back edges (edges into a node currently on the DFS stack). Iterative:
+    # a recursive walk hit Python's recursion limit on a long chain (a 1500-node pipeline
+    # is a legal drawio file).
     WHITE, GRAY, BLACK = 0, 1, 2
     color = {n: WHITE for n in nodes}
     back_edges: set[tuple[str, str]] = set()
 
-    def dfs(u: str) -> None:
-        color[u] = GRAY
-        for v in adjacency[u]:
-            if color[v] == GRAY:
-                back_edges.add((u, v))
-            elif color[v] == WHITE:
-                dfs(v)
-        color[u] = BLACK
-
-    for n in nodes:
-        if color[n] == WHITE:
-            dfs(n)
+    for root in nodes:
+        if color[root] != WHITE:
+            continue
+        stack: list[tuple[str, int]] = [(root, 0)]
+        color[root] = GRAY
+        while stack:
+            u, idx = stack[-1]
+            if idx < len(adjacency[u]):
+                stack[-1] = (u, idx + 1)
+                v = adjacency[u][idx]
+                if color[v] == GRAY:
+                    back_edges.add((u, v))
+                elif color[v] == WHITE:
+                    color[v] = GRAY
+                    stack.append((v, 0))
+            else:
+                color[u] = BLACK
+                stack.pop()
 
     forward = [(a, b) for a, b in edges if (a, b) not in back_edges]
 
@@ -160,32 +168,120 @@ def layer_graph(ir: dict, direction: str = "top-down") -> tuple[dict[str, int], 
     return layer, back_edges
 
 
+_SPEC_STRATEGY = {
+    # One horizontal row of equal boxes.
+    "row-1": "linear", "row-n-equal": "linear", "multi-row": "linear",
+    "row-1-branch": "linear",
+    # One box per row: layers, lanes, timelines, funnels.
+    "stacked-bands": "stack", "stacked-offset": "stack", "stacked-axes": "stack",
+    "nested": "stack", "lanes": "stack", "axis-alt": "stack", "bars-deps": "stack",
+    "narrowing": "stack",
+    # Square-ish grid in declaration order: matrices, tables, split layouts.
+    "grid": "grid", "matrix": "grid", "table": "grid", "grid-contained": "grid",
+    "grid-numbers": "grid", "sections": "grid", "two-column": "grid",
+    "split-mid": "grid", "tri-matrix": "grid", "matrix-bars": "grid",
+    "zones": "grid", "scatter-leaders": "grid",
+    # Topology-derived layering.
+    "graph": "graph", "hierarchy": "graph", "free": "graph",
+    "mother-children": "graph", "subject-leaders": "graph", "two-col-links": "graph",
+    "graph-symbols": "graph", "curve-peaks": "graph",
+    # Statistical-type specs: matplotlib owns the layout, so the structure route is
+    # never asked to place them. Mapping them to "graph" keeps the warning list honest.
+    "axes": "graph", "axes-region": "graph", "axes-midline": "graph", "axes-grid": "graph",
+    "polar": "graph", "flows": "graph", "area-tiles": "graph", "gradient-axis": "graph",
+    "rows-bar": "graph",
+}
+# Specs the grid/row/column placement model cannot express. They are reported rather
+# than silently rendered as a plain graph.
+UNIMPLEMENTED_SPECS = {"radial", "ring", "circles-2", "circles-3", "ring-text", "ring-flows"}
+
+
+def layout_strategy(spec: str | None, warn: bool = True) -> str:
+    """Map a catalog `layout_spec` to one of the implemented placement strategies.
+
+    Public so the scaffolder can size its grid to match: a `stack` diagram wants one
+    column (full-width rows), a `linear` one wants exactly N columns. `warn=False` lets
+    the scaffolder ask without duplicating the renderer's warning.
+    """
+    spec = (spec or "").strip()
+    if not spec:
+        return "graph"
+    if spec in UNIMPLEMENTED_SPECS:
+        if warn:
+            print(f"warning: layout_spec {spec!r} is not implemented yet; "
+                  f"falling back to topology layering", file=sys.stderr)
+        return "graph"
+    return _SPEC_STRATEGY.get(spec, "graph")
+
+
+def _strategy_for(ir: dict) -> str:
+    return layout_strategy((ir.get("meta") or {}).get("layout_spec"))
+
+
 def auto_layout(ir: dict, direction: str = "top-down") -> dict[str, dict]:
     """Derive layout.nodes from the topology when the IR does not declare one.
 
     Used by the mermaid/drawio route: the source gives structure, this gives a layout
     that respects it. Explicit IR layout always wins.
+
+    `meta.layout_spec` (from the chart catalog) selects a placement strategy: a pipeline
+    wants one row, a layered diagram wants one box per row, a matrix wants a grid. Without
+    it every chart type got the same topology layering, which is why "layered" and
+    "pipeline" rendered identically.
     """
     existing = ir.get("layout", {}).get("nodes")
     if existing:
         return existing
 
-    layer, back_edges = layer_graph(ir, direction)
+    strategy = _strategy_for(ir)
     bands = {n["id"] for n in ir.get("topology", {}).get("nodes", []) if n.get("kind") == "band"}
-    layered = [n for n in layer if n not in bands]
+    members = {n["id"]: list(n.get("members") or [])
+               for n in ir.get("topology", {}).get("nodes", []) if n.get("kind") == "band"}
 
-    # group by layer, preserving declaration order inside a layer
-    buckets: dict[int, list[str]] = {}
-    for nid in sorted(layered, key=lambda k: (layer[k], list(layer).index(k))):
-        buckets.setdefault(layer[nid], []).append(nid)
+    if strategy in ("linear", "stack", "grid"):
+        ids = [n["id"] for n in ir.get("topology", {}).get("nodes", [])
+               if n.get("kind") != "band"]
+        out: dict[str, dict] = {}
+        if strategy == "linear":
+            for i, nid in enumerate(ids):
+                out[nid] = {"col": i, "row": 0}
+        elif strategy == "stack":
+            for i, nid in enumerate(ids):
+                out[nid] = {"col": 0, "row": i}
+        else:
+            cols = max(int(len(ids) ** 0.5 + 0.999), 1) if ids else 1
+            for i, nid in enumerate(ids):
+                out[nid] = {"col": i % cols, "row": i // cols}
+    else:
+        layer, _back = layer_graph(ir, direction)
+        layered = [n for n in layer if n not in bands]
+        # One position map instead of `list(layer).index(k)` inside the sort key, which
+        # was O(n^2) per comparison and made large imported graphs crawl.
+        position = {nid: i for i, nid in enumerate(layer)}
+        buckets: dict[int, list[str]] = {}
+        for nid in sorted(layered, key=lambda k: (layer[k], position[k])):
+            buckets.setdefault(layer[nid], []).append(nid)
+        out = {}
+        for depth, group in sorted(buckets.items()):
+            for i, nid in enumerate(group):
+                out[nid] = {"col": i, "row": depth}
 
-    out: dict[str, dict] = {}
-    for depth, members in sorted(buckets.items()):
-        for i, nid in enumerate(members):
-            out[nid] = {"col": i, "row": depth}
-    max_width = max((len(v) for v in buckets.values()), default=1)
+    # A band covers the rectangle its members occupy, so a subgraph frames its nodes
+    # instead of sitting as an orphan strip on top of the first row.
     for bid in bands:
-        out[bid] = {"col": 0, "row": 0, "col_span": max_width, "row_span": 1}
+        inside = [nid for nid in members.get(bid, []) if nid in out]
+        if not inside:
+            max_col = max((int(e.get("col", 0)) + int(e.get("col_span", 1))
+                           for e in out.values()), default=1)
+            out[bid] = {"col": 0, "row": 0, "col_span": max_col, "row_span": 1}
+            continue
+        cols = [int(out[nid].get("col", 0)) for nid in inside]
+        rows = [int(out[nid].get("row", 0)) for nid in inside]
+        out[bid] = {
+            "col": min(cols), "row": min(rows),
+            "col_span": max(cols) - min(cols) + 1,
+            "row_span": max(rows) - min(rows) + 1,
+        }
     return out
 
 
@@ -485,6 +581,7 @@ def render(ir: dict, out_path: str | None = None, scale: float = 1.0,
     parts.append("</svg>")
     svg = "\n".join(parts)
     if out_path:
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
         Path(out_path).write_text(svg, encoding="utf-8")
     return svg
 

@@ -85,6 +85,28 @@ IR
 - 不含任何坐标。坐标全在 `layout`。
 - `kind` 只能是五个图元之一（METHOD §1 原则 3）。
 - 重复结构用循环生成，不手写第二条相同边。
+- `band` 可选带 `members`（包含的节点 id 列表）：
+  `auto_layout` 用它算出背景框的 `col/row/col_span/row_span`，
+  mermaid `subgraph` 就是靠这个得到真实范围的。
+  不写时 band 退化为顶部横条。
+
+### 2.3.1 layout_spec（布局策略提示）
+
+`meta.layout_spec` 来自图型目录，选择「怎么摆」。它在
+`layout.nodes` 为空时生效；显式坐标永远优先。
+
+| 策略 | 适用 spec | 摆法 |
+|---|---|---|
+| `linear` | `row-1` `row-n-equal` `multi-row` `row-1-branch` | 一排等宽 |
+| `stack` | `stacked-bands` `stacked-offset` `stacked-axes` `nested` `lanes` `axis-alt` `bars-deps` `narrowing` | 每行一个 |
+| `grid` | `grid` `matrix` `table` `grid-contained` `grid-numbers` `sections` `two-column` `split-mid` `tri-matrix` `matrix-bars` `zones` `scatter-leaders` | 近方网格 |
+| `graph` | `graph` `hierarchy` `free` 等其余 | 按拓扑分层 |
+
+尚未实现：`radial` `ring` `circles-2` `circles-3` `ring-text` `ring-flows`。
+声明了这些 spec 会回退到 `graph` 并在 stderr 报一条
+warning，不会偷偷当成普通图。
+
+---
 
 ### 2.4 layout（布局层）
 

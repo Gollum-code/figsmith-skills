@@ -144,52 +144,6 @@ def pptx_texts(pptx_path: Path) -> set[str]:
     return {f.strip() for f in found if f.strip()}
 
 
-def _rasterize_pdf_via_browser(pdf_path: Path, out_png: Path) -> None:
-    """Rasterize a PDF to PNG using the system browser.
-
-    PDFs cannot be handed to `read` directly (probe test 5 failed), so the PDF deliverable
-    is verified through this raster proxy. Falls back silently to no proxy, in which case
-    the structural PDF checks still run.
-    """
-    from backends.png import find_browser, sandbox_flags
-
-    browser = find_browser()
-    if not browser or not pdf_path.exists():
-        return
-    import subprocess
-    import tempfile
-
-    with tempfile.TemporaryDirectory() as tmp:
-        # Chrome renders a PDF in a page; a data URL keeps it self-contained.
-        page = Path(tmp) / "view.html"
-        page.write_text(
-            f'<!doctype html><meta charset=utf-8><style>'
-            f'html,body{{margin:0;background:#fff}}img{{display:block}}'
-            f'</style><script>'
-            f'document.write("<img src=\\"{pdf_path.as_uri()}\\" style=\\"width:1600px\\">")'
-            f'</script>',
-            encoding="utf-8",
-        )
-        raw = Path(tmp) / "shot.png"
-        subprocess.run([
-            browser, "--headless=new", "--disable-gpu", "--hide-scrollbars",
-            "--force-device-scale-factor=1", "--window-size=1600,2200",
-            *sandbox_flags(), f"--screenshot={raw}", f"file:///{page.as_posix()}",
-        ], capture_output=True, timeout=120, check=False)
-        if raw.exists():
-            from PIL import Image
-            img = Image.open(raw).convert("RGB")
-            # Headless Chrome ships no PDF viewer, so the screenshot can come back blank
-            # even though the PDF is fine. Writing that blank PNG would make the proxy
-            # comparison meaningless (a sparse figure "passes", a dense one "fails").
-            # Treat a blank capture as "no proxy" and fall back to the structural check.
-            gray = img.convert("L")
-            pixels = list(gray.getdata())
-            if pixels and sum(1 for v in pixels if v < 240) / len(pixels) < 0.001:
-                return
-            img.save(out_png)
-
-
 def png_is_real(png_path: Path) -> bool:
     from PIL import Image
 
@@ -270,29 +224,20 @@ def _pdf_is_vector(pdf_path: Path) -> bool:
     return False
 
 
-def _proxy_matches(svg_png: Path, pdf_proxy: Path) -> bool:
-    """Compare ink coverage between the SVG raster and the PDF raster proxy.
+def _pdf_structural(pdf: Path) -> tuple[bool, str]:
+    """The PDF half of the four-way contract: one page, vector content, real size.
 
-    Same figure, two containers: the fraction of non-background pixels should agree
-    within a few percent. A wildly different number means one route lost content.
+    A raster proxy was the previous approach, but headless Chromium ships no PDF viewer,
+    so the capture always came back blank and the check silently degraded to a no-op.
+    The container is verified directly instead: page count, text operators, page-sized
+    rasters. That is what "the PDF is a real deliverable" actually means.
     """
-    if not pdf_proxy.exists():
-        return True  # proxy could not be produced (no rasterizer); structural check stands
-    try:
-        from PIL import Image
+    from tools.pdf_check import check as pdf_check
 
-        def ink_ratio(path: Path) -> float:
-            img = Image.open(path).convert("L")
-            arr = list(img.getdata())
-            if not arr:
-                return 0.0
-            dark = sum(1 for v in arr if v < 240)
-            return dark / len(arr)
-
-        a, b = ink_ratio(svg_png), ink_ratio(pdf_proxy)
-        return abs(a - b) < 0.05
-    except Exception:  # noqa: BLE001
-        return True
+    result = pdf_check(pdf, expect_pages=1)
+    return bool(result["passed"]), (
+        f"pages={result.get('pages')} text_ops={result.get('text_ops')} "
+        f"vector={result.get('vector')}")
 
 
 def check(ir_path: Path, outdir: Path) -> dict:
@@ -321,12 +266,6 @@ def check(ir_path: Path, outdir: Path) -> dict:
         _run("backends.png", str(svg), "-o", str(png), "--width", "1200")
         _run("backends.pdf", str(ir_path), "-o", str(pdf))
     _run("backends.pptx", str(ir_path), "-o", str(pptx))
-
-    # PDF proxy for verification: rasterize the PDF with the system browser so the PDF
-    # can be judged from pixels. docs/vision-probe-report.md 3.2 mandates this because
-    # PDFs cannot be fed to `read` directly.
-    pdf_proxy = outdir / "figure.pdf.png"
-    _rasterize_pdf_via_browser(pdf, pdf_proxy)
 
     expected = expected_texts(ir)
     # A statistical figure's axis ticks, legend and footnote live in the matplotlib SVG;
@@ -362,14 +301,10 @@ def check(ir_path: Path, outdir: Path) -> dict:
         if not ok:
             report["passed"] = False
 
-    # PDF is verified structurally plus by raster proxy, never by text extraction
-    # (docs/vision-probe-report.md 3.2). A "PNG wrapped in PDF" fails _pdf_is_vector.
-    pdf_ok = _pdf_is_vector(pdf) and _proxy_matches(png, pdf_proxy)
-    report["artifacts"]["pdf"] = {
-        "ok": pdf_ok,
-        "detail": "vector" + (" +proxy" if pdf_proxy.exists() else " (no proxy)"),
-        "texts": None,
-    }
+    # PDF is verified structurally, never by text extraction (docs/vision-probe-report.md
+    # 3.2): page count, text operators and vector-ness. A "PNG wrapped in PDF" fails.
+    pdf_ok, pdf_detail = _pdf_structural(pdf)
+    report["artifacts"]["pdf"] = {"ok": pdf_ok, "detail": pdf_detail, "texts": None}
     report["missing"]["pdf"] = []
     if not pdf_ok:
         report["passed"] = False
@@ -405,7 +340,8 @@ def main(argv: list[str]) -> int:
         print(f"  expected labels: {report['labels_expected']}")
         for fmt, meta in report["artifacts"].items():
             extra = f" {meta['size']}" if "size" in meta else ""
-            print(f"  {fmt:5} texts={meta.get('texts', '-')} ok={meta['ok']}{extra}")
+            detail = f"  {meta['detail']}" if fmt == "pdf" else ""
+            print(f"  {fmt:5} texts={meta.get('texts', '-')} ok={meta['ok']}{extra}{detail}")
         print(f"  hung primitives: {report['primitives']}")
         print(f"  bytes: {report['bytes']}")
         if not report["passed"]:

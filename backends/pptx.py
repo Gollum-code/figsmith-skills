@@ -22,6 +22,46 @@ from core.tokens import load as load_tokens  # noqa: E402
 
 EMU_PER_INCH = 914400
 # PPTX colors are RGB hex without '#'
+_FIXED_TIMESTAMP = __import__("datetime").datetime(2020, 1, 1, tzinfo=__import__("datetime").timezone.utc)
+
+
+def _stamp(prs) -> None:
+    """Pin the document timestamps so re-rendering the same IR yields the same bytes.
+
+    python-pptx otherwise writes "now" into core.xml on every save, which made the
+    reproducibility claim ("regenerate and diff") untestable for PPTX deliverables.
+    """
+    prs.core_properties.created = _FIXED_TIMESTAMP
+    prs.core_properties.modified = _FIXED_TIMESTAMP
+    prs.core_properties.last_modified_by = "FigSmith"
+    prs.core_properties.revision = 1
+
+
+def _normalize_zip(path: Path) -> None:
+    """Rewrite the saved package with fixed member timestamps.
+
+    core.xml was pinned but the ZIP directory still recorded the wall clock for every
+    entry, so two runs differed by a few bytes. A fixed date makes the file byte-identical.
+    """
+    import os
+    import tempfile
+    import zipfile
+
+    fd, tmp_name = tempfile.mkstemp(suffix=".pptx", dir=str(Path(path).parent))
+    os.close(fd)
+    tmp = Path(tmp_name)
+    try:
+        with zipfile.ZipFile(path) as src, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as dst:
+            for info in src.infolist():
+                data = src.read(info.filename)
+                fixed = zipfile.ZipInfo(info.filename, date_time=(1980, 1, 1, 0, 0, 0))
+                fixed.compress_type = zipfile.ZIP_DEFLATED
+                fixed.external_attr = info.external_attr
+                dst.writestr(fixed, data)
+        os.replace(tmp, path)
+    finally:
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
 
 
 def _rgb(hex_color: str):
@@ -52,6 +92,7 @@ def _render_statistical(ir: dict, out_path: str | Path, slide_w_in: float,
     legend = [s.get("name") for s in ir.get("data", {}).get("series", []) if s.get("name")]
 
     prs = Presentation()
+    _stamp(prs)
     prs.slide_width = Inches(slide_w_in)
     prs.slide_height = Inches(slide_h_in)
     slide = prs.slides.add_slide(prs.slide_layouts[6])
@@ -118,7 +159,9 @@ def _render_statistical(ir: dict, out_path: str | Path, slide_w_in: float,
             run.font.size = Pt(tokens.font_size("annotation"))
             run.font.color.rgb = _rgb(tokens.c("colors.ink_secondary"))
 
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     prs.save(str(out_path))
+    _normalize_zip(Path(out_path))
     return str(out_path)
 
 
@@ -138,6 +181,7 @@ def render(ir: dict, out_path: str | Path, slide_w_in: float = 13.333,
     emphasis = set(ir.get("style", {}).get("emphasis", []))
 
     prs = Presentation()
+    _stamp(prs)
     prs.slide_width = Inches(slide_w_in)
     prs.slide_height = Inches(slide_h_in)
     slide = prs.slides.add_slide(prs.slide_layouts[6])  # blank
@@ -250,6 +294,7 @@ def render(ir: dict, out_path: str | Path, slide_w_in: float = 13.333,
             run.font.color.rgb = _rgb(tokens.c("colors.ink_secondary"))
 
     prs.save(str(out_path))
+    _normalize_zip(Path(out_path))
     return str(out_path)
 
 

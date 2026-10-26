@@ -60,27 +60,50 @@ def _route(intent: str) -> dict | None:
 # ---------- scaffolds ----------
 
 
-def _scaffold_structure(chart_type: str, domain: str, tokens: str) -> dict:
+def _scaffold_structure(chart_type: str, domain: str, tokens: str,
+                        layout_spec: str | None = None) -> dict:
     """A valid 4-stage linear pipeline: the smallest figure that exercises every
-    structural feature (boxes, arrows, labels) and passes all three checks."""
+    structural feature (boxes, arrows, labels) and passes all three checks.
+
+    Placement is left to the renderer so `layout_spec` decides it: a pipeline comes out
+    as one row, a layered diagram as a column, a matrix as a grid. Hardcoding a row here
+    made every chart type render identically.
+    """
     n = 4
     nodes = [{"id": f"s{i}", "kind": "box"} for i in range(n)]
     edges = [{"from": f"s{i}", "to": f"s{i + 1}", "label": f"e{i}", "kind": "arrow"}
              for i in range(n - 1)]
     labels = {f"s{i}": f"Stage {i + 1}" for i in range(n)}
     labels.update({f"e{i}": f"step {i + 1}" for i in range(n - 1)})
+    meta = {
+        "domain": domain, "chart_type": chart_type, "tokens": tokens,
+        "title": "TODO figure title", "width_unit": 100,
+    }
+    if layout_spec:
+        meta["layout_spec"] = layout_spec
+
+    # The grid has to agree with the placement strategy: `width_unit` is the canvas
+    # authority and box width derives from it, so a stacked chart with 4 declared columns
+    # got narrow boxes on a full-width canvas.
+    from backends.svg import layout_strategy
+
+    strategy = layout_strategy(layout_spec, warn=False)
+    if strategy == "stack":
+        columns = 1
+    elif strategy == "grid":
+        columns = max(int(n ** 0.5 + 0.999), 1)
+    else:
+        columns = n
+
     return {
         "schema": "figsmith.ir/1.0",
-        "meta": {
-            "domain": domain, "chart_type": chart_type, "tokens": tokens,
-            "title": "TODO figure title", "width_unit": 100,
-        },
+        "meta": meta,
         "content": {"labels": labels, "legend": [], "footnote": "TODO footnote."},
         "topology": {"nodes": nodes, "edges": edges},
         "layout": {
             "canvas": {"margin": 3, "px_per_unit": 12},
-            "grid": {"columns": n, "gap_x": 2.0, "gap_y": 4.0, "box_w": 16, "box_h": 12},
-            "nodes": {f"s{i}": {"col": i, "row": 0} for i in range(n)},
+            "grid": {"columns": columns, "gap_x": 2.0, "gap_y": 4.0, "box_w": 16, "box_h": 12},
+            "nodes": {},
         },
         "style": {
             "fill": {f"s{i}": "colors.surface_band" for i in range(n)},
@@ -214,7 +237,8 @@ def cmd_scaffold(args: argparse.Namespace) -> int:
     else:
         target = out.with_suffix(".ir.json")
         target.write_text(
-            json.dumps(_scaffold_structure(chart_type, domain, STRUCTURE_TOKENS),
+            json.dumps(_scaffold_structure(chart_type, domain, STRUCTURE_TOKENS,
+                                           hit.get("layout_spec")),
                        indent=2, ensure_ascii=False), encoding="utf-8")
 
     print(f"scaffolded {domain}/{chart_type} (route={route}) -> {target}")
@@ -267,9 +291,17 @@ def cmd_render(args: argparse.Namespace) -> int:
             code, log = _run("backends.svg", str(src), "-o", str(out.with_suffix(".svg")),
                              "--scale", args.scale)
             if code == 0:
-                code, log = _run("backends.png", str(out.with_suffix(".svg")),
-                                 "-o", str(out.with_suffix(".png")), "--width", args.width)
-    print(log.strip().splitlines()[-1] if log.strip() else "")
+                # Keep the SVG step's log: overwriting it dropped the backend warnings.
+                code, png_log = _run("backends.png", str(out.with_suffix(".svg")),
+                                     "-o", str(out.with_suffix(".png")), "--width", args.width)
+                log = f"{log}\n{png_log}"
+    lines = [ln for ln in log.strip().splitlines() if ln.strip()]
+    # Warnings from the backend (an unimplemented layout_spec, a downscaled tall figure)
+    # are actionable; printing only the last line hid them.
+    for ln in lines:
+        if ln.startswith("warning:"):
+            print(ln)
+    print(lines[-1] if lines else "")
     return code
 
 
@@ -311,6 +343,18 @@ def cmd_verify(args: argparse.Namespace) -> int:
         # three checks never ran is exactly the "fabricated PASS" the project forbids.
         print(f"  raster       MISSING ({png.name}); run `render` first")
         failures += 1
+
+    # The layout routes deliver a PDF; its page count and vector text are part of the
+    # contract and a PNG proxy cannot see either.
+    if src.suffix == ".html":
+        pdf = src.with_suffix(".pdf")
+        if pdf.exists():
+            rc, _ = _run("tools.pdf_check", str(pdf), "--expect-pages", "1")
+            print(f"  pdf          {'ok' if rc == 0 else 'FAIL'}")
+            failures += rc != 0
+        else:
+            print(f"  pdf          MISSING ({pdf.name})")
+            failures += 1
 
     # Visual acceptance is never asserted by this script; it is dispatched separately.
     print("  visual       PENDING (dispatch core.verify.judge; no fabricated PASS)")

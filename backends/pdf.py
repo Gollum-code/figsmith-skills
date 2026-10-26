@@ -28,10 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from core.tokens import load as load_tokens  # noqa: E402
-
-# PDF units are points; 1 unit = 1/72 inch
-UNIT_PER_POINT = 1.0
+from core.tokens import load as load_tokens  # noqa: E402  (kept for API parity with the other backends)
 
 
 def _hex_to_rgb(hex_color: str) -> tuple[float, float, float]:
@@ -78,17 +75,6 @@ _CJK_FALLBACKS = [
 
 _CJK_FONT_NAME: str | None = None
 _CJK_RESOLVED = False
-
-
-def _has_cjk(path: str) -> bool:
-    """True when the font carries CJK codepoints (or when that cannot be determined)."""
-    try:
-        from fontTools.ttLib import TTFont
-
-        font = TTFont(path, fontNumber=0, lazy=True)
-        return any(0x4E00 <= cp <= 0x9FFF for cp in font.getBestCmap())
-    except Exception:  # noqa: BLE001
-        return False
 
 
 def _register_cjk_font() -> str | None:
@@ -183,6 +169,7 @@ def render_from_svg(svg_path: str | Path, out_pdf: str | Path) -> str:
     from reportlab.lib.colors import Color
     from reportlab.pdfgen import canvas as pdf_canvas
 
+    Path(out_pdf).parent.mkdir(parents=True, exist_ok=True)
     svg_text = Path(svg_path).read_text(encoding="utf-8-sig")
     from backends.svg import parse_svg_size
 
@@ -196,15 +183,14 @@ def render_from_svg(svg_path: str | Path, out_pdf: str | Path) -> str:
     to_pt = {"pt": 1.0, "px": 1.0, "mm": 72.0 / 25.4, "cm": 72.0 / 2.54, "in": 72.0}[unit]
     width_pt, height_pt = w_u * to_pt, h_u * to_pt
 
-    c = pdf_canvas.Canvas(str(out_pdf), pagesize=(width_pt, height_pt))
+    # invariant=1 keeps reportlab's object ids and creation date fixed, so the same SVG
+    # always produces the same PDF bytes (the reproducibility contract).
+    c = pdf_canvas.Canvas(str(out_pdf), pagesize=(width_pt, height_pt), invariant=1)
     if to_pt != 1.0:
         c.scale(to_pt, to_pt)
     c.setLineJoin(1)
     # Flip using the user-space height: after c.scale the coordinate system is user units.
     height_pt = h_u
-
-    c = pdf_canvas.Canvas(str(out_pdf), pagesize=(width_pt, height_pt))
-    c.setLineJoin(1)
 
     def rgb(hex_color: str) -> Color:
         r, g, b = _hex_to_rgb(hex_color)

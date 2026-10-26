@@ -40,6 +40,7 @@ jobs:
           python tests/test_parse_drawio.py
           python tests/test_security.py
           python tests/test_four_way.py
+          python tests/test_regressions.py
 
       # The regression suite: validate + render + contrast + tiling + overflow, per
       # case, and blessed baselines must not drift.
@@ -63,6 +64,18 @@ jobs:
       # must resolve, or figures fail silently at render time.
       - name: token consistency
         run: python -m core.tokens.loader --check
+
+      # The layout routes ship PDFs. A PDF that spilled onto a second page, or whose
+      # text silently became an image, passes every raster check - so check the container.
+      - name: pdf deliverables are single-page and vector
+        shell: bash
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r -d '' f; do
+            python tools/pdf_check.py "$f" --expect-pages 1 || fail=1
+          done < <(find examples -name '*.pdf' -not -path './.git/*' -print0)
+          exit $fail
 
       # No hex literal may appear in code: colors go through the token path only
       # (METHOD 4). Allowed and self-documented: lines marked `# hex-ok` (render

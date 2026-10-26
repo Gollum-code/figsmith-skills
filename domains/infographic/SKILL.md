@@ -42,7 +42,7 @@ description: 信息图域。数据故事、时间轴、对比、流程的可视�
 ## 4. 验收标准
 
 - [ ] SVG 路线：IR 合法 + overflow/contrast/tiling 三查
-- [ ] HTML 路线：PDF 文字矢量 + PNG 代理三查
+- [ ] HTML 路线：`tools/pdf_check.py` 单页 + 文字矢量，PNG 代理 contrast/tiling 两查
 - [ ] 数据块与源数据一致（有数据时）
 - [ ] 视觉裁判 PASS
 - [ ] 同源可重生成
@@ -58,6 +58,7 @@ description: 信息图域。数据故事、时间轴、对比、流程的可视�
 ```bash
 # SVG 路线
 python -m backends.svg infographic.ir.json -o out.svg --scale 12
-# HTML 路线
-python -m backends.html2pdf infographic.html -o out.pdf --png out.png --size 1200x2400
+# HTML 路线（--size 必须等于页面实际尺寸；本例 page 是 1200x760）
+python -m backends.html2pdf infographic.html -o out.pdf --png out.png --size 1200x760
+python tools/pdf_check.py out.pdf
 ```

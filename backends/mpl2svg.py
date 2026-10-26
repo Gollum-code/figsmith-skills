@@ -150,6 +150,10 @@ def _apply_rc(tokens, dpi: int) -> None:
         "grid.linewidth": tokens.s("stroke.grid"),
         "legend.frameon": False,
         "svg.fonttype": "none",  # keep text as text so it stays editable and searchable
+        # Deterministic element ids: without a salt matplotlib names every clip path with
+        # a fresh random hex, so two runs of the same script produced different bytes and
+        # the "regenerate and diff" contract was unenforceable.
+        "svg.hashsalt": "figsmith",
     })
 
 
@@ -337,9 +341,14 @@ def render(ir: dict, out_svg: str | None = None, out_png: str | None = None,
     _draw(ax, ir, tokens, base_dir)
 
     fig.tight_layout()
+    for target in (out_svg, out_png):
+        if target:
+            Path(target).parent.mkdir(parents=True, exist_ok=True)
+    # Consistent hashes and no embedded dates: re-running the same spec must produce the
+    # same bytes, otherwise "regenerate and diff" can never be a gate.
     if out_svg:
         fig.savefig(out_svg, format="svg", bbox_inches="tight",
-                    facecolor=tokens.c("colors.surface"))
+                    facecolor=tokens.c("colors.surface"), metadata={"Date": None})
     if out_png:
         fig.savefig(out_png, format="png", bbox_inches="tight",
                     facecolor=tokens.c("colors.surface"))
@@ -360,7 +369,9 @@ def main(argv: list[str]) -> int:
 
     ir = json.loads(Path(args.ir).read_text(encoding="utf-8-sig"))
     out = args.out or str(Path(args.ir).with_suffix(".svg"))
-    png = args.png or str(Path(args.ir).with_suffix(".png"))
+    # The PNG follows the SVG, not the source IR: `-o out/fig.svg` used to also drop a
+    # `fig.png` next to the input IR, scattering artifacts across two directories.
+    png = args.png or str(Path(out).with_suffix(".png"))
     render(ir, out, png, args.dpi, base_dir=Path(args.ir).resolve().parent)
     print(f"wrote {out} and {png}")
     return 0
